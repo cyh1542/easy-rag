@@ -1,0 +1,81 @@
+[build-system]
+requires = ["setuptools>=69.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "easy-rag"
+version = "1.0.0"
+description = "可配置的 RAG 服务：Flask 管理界面 + FastAPI 问答 API + 命令行工具"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+authors = [
+    { name = "Easy RAG Contributors" },
+]
+keywords = ["rag", "llm", "chromadb", "fastapi", "flask", "embedding"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Framework :: FastAPI",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "Flask>=3.0.3,<4.0.0",
+    "fastapi>=0.115.0,<1.0.0",
+    "uvicorn>=0.30.6,<1.0.0",
+    "openai>=1.30.0,<2.0.0",
+    "sentence-transformers>=3.0.1,<4.0.0",
+    "huggingface-hub>=0.23.4,<1.0.0",
+    "chromadb>=1.5.9,<2.0.0",
+    "python-dotenv>=1.0.1,<2.0.0",
+    "pandas>=2.2.2,<3.0.0",
+    "PyMySQL>=1.1.1,<2.0.0",
+    "pypdf>=4.2.0,<6.0.0",
+    "openpyxl>=3.1.2,<4.0.0",
+    "xlrd>=2.0.1,<3.0.0",
+    "python-docx>=1.1.2,<2.0.0",
+    "python-pptx>=1.0.2,<2.0.0",
+    "beautifulsoup4>=4.12.3,<5.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.0,<9.0.0",
+    "httpx>=0.27.0,<1.0.0",
+]
+
+[project.scripts]
+easy-rag-web = "easy_rag.web.app:main"
+easy-rag-api = "easy_rag.api.server:main"
+easy-rag-ingest = "easy_rag.cli.ingest:main"
+easy-rag-chat = "easy_rag.cli.chat:main"
+
+[project.urls]
+Homepage = "https://github.com/your-org/easy-rag"
+Documentation = "https://github.com/your-org/easy-rag#readme"
+Repository = "https://github.com/your-org/easy-rag"
+Issues = "https://github.com/your-org/easy-rag/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+easy_rag = ["templates/*.html"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-ra"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]

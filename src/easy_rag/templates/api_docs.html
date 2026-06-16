@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>FastAPI API Docs</title>
+    {% include "_styles.html" %}
+</head>
+<body>
+    <div class="page">
+        {% import "_form_fields.html" as forms %}
+        <form method="post" action="{{ url_for('save_config') }}" class="fields">
+            <input type="hidden" name="CURRENT_PAGE" value="api_docs">
+            {{ forms.hidden_preserve_fields(form_values, api_page_fields) }}
+            <div class="top-nav">
+                {{ forms.nav_buttons('api_docs') }}
+            </div>
+
+            <section class="hero">
+                <h1>FastAPI 对外接口说明</h1>
+                <p>配置 API 对外地址与路径前缀掩饰，并查看外部系统应使用的调用地址。</p>
+            </section>
+
+            {% if message %}<div class="flash success">{{ message }}</div>{% endif %}
+            {% if error %}<div class="flash error">{{ error }}</div>{% endif %}
+            {% if settings_error %}<div class="flash error">当前配置存在待修正项：{{ settings_error }}</div>{% endif %}
+
+            <section class="card">
+                <div class="badge">API 掩饰配置</div>
+                <h2 class="section-title">对外地址与路径前缀</h2>
+                {{ forms.api_fields(form_values) }}
+                <div class="button-row">
+                    <button class="btn-primary" type="submit">保存 API 配置</button>
+                </div>
+                <div class="section-divider"></div>
+                <div class="section-subtitle">保存到磁盘后需重启 FastAPI 服务（easy-rag-api）使路径前缀生效。</div>
+            </section>
+
+            <section class="card" style="margin-top: 18px;">
+                <div class="badge">当前对外地址</div>
+                <h2 class="section-title">外部系统应调用的 URL</h2>
+                <div class="result-box">健康检查：{{ api_endpoint_urls["health"] }}
+问答接口：{{ api_endpoint_urls["chat"] }}
+Swagger：{{ api_endpoint_urls["docs"] }}
+ReDoc：{{ api_endpoint_urls["redoc"] }}</div>
+            </section>
+
+            <section class="card" style="margin-top: 18px;">
+                <div class="badge">启动方式</div>
+                <h2 class="section-title">运行 API 服务</h2>
+                <div class="result-box">easy-rag-api
+
+或：uvicorn api_server:api --host {{ form_values["API_BIND_HOST"] }} --port {{ form_values["API_BIND_PORT"] }}</div>
+            </section>
+        </form>
+    </div>
+</body>
+</html>

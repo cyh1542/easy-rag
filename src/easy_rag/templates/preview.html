@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Model Preview</title>
+    {% include "_styles.html" %}
+</head>
+<body>
+    <div class="page">
+        {% import "_form_fields.html" as forms %}
+        <form method="post" action="{{ url_for('preview_answer') }}" class="fields">
+            <input type="hidden" name="CURRENT_PAGE" value="preview">
+            {{ forms.hidden_preserve_fields(form_values, []) }}
+            <div class="top-nav">
+                {{ forms.nav_buttons('preview') }}
+            </div>
+
+            <section class="hero">
+                <h1>模型效果预览</h1>
+                <p>输入问题后，会基于当前页面已填写/已保存配置和现有索引直接预览回答效果；也可调用 FastAPI 批量评测 tests/eval 下的测试集。</p>
+            </section>
+
+            {% if message %}<div class="flash success">{{ message }}</div>{% endif %}
+            {% if error %}<div class="flash error">{{ error }}</div>{% endif %}
+            {% if settings_error %}<div class="flash error">当前配置存在待修正项：{{ settings_error }}</div>{% endif %}
+
+            <div class="grid">
+                <section class="card">
+                    <div class="badge">当前生效配置</div>
+                    <div class="section-subtitle">跳转页面时会保留各设置页中的参数草稿；写入磁盘仍需在对应页面点击保存。</div>
+                    <div class="result-box">聊天模型：{{ form_values["CHAT_MODEL"] }}
+Embedding 模式：{{ form_values["EMBEDDING_PROVIDER"] }}
+检索方式：{{ form_values["RETRIEVAL_METHOD"] }}
+知识库路径：{{ form_values["KNOWLEDGE_DIR"] }}</div>
+
+                    <div class="section-divider"></div>
+                    <div class="badge">问题输入</div>
+                    {{ forms.preview_fields(preview_question) }}
+                    <div class="button-row">
+                        <button class="btn-primary" type="submit">预览模型效果</button>
+                    </div>
+                </section>
+
+                <section class="card">
+                    <div class="badge">预览结果</div>
+                    <h2 class="section-title">回答与命中上下文</h2>
+                    {% if preview_result %}
+                    <div class="result-box">问题：{{ preview_question }}
+
+回答：
+{{ preview_result["answer"] }}</div>
+
+                    {% if preview_result["references"] %}
+                    <div class="section-subtitle" style="margin-top: 12px;">参考来源：{{ preview_result["references"] | join("，") }}</div>
+                    {% endif %}
+
+                    {% if preview_result["contexts"] %}
+                    <h3 style="margin-top: 18px;">命中上下文</h3>
+                    {% for item in preview_result["contexts"] %}
+                    <div class="context-card">
+                        <div class="context-meta">来源：{{ item["source"] }}{% if item["distance"] is not none %} | 距离：{{ item["distance"] }}{% endif %}</div>
+                        <div>{{ item["content"] }}</div>
+                    </div>
+                    {% endfor %}
+                    {% endif %}
+                    {% else %}
+                    <div class="result-box">这里会显示模型回答、参考来源和命中上下文。</div>
+                    {% endif %}
+                </section>
+            </div>
+
+            <section class="card" style="margin-top: 18px;">
+                <div class="badge">批量评测</div>
+                <h2 class="section-title">FastAPI 测试集评测</h2>
+                <p class="section-subtitle">通过 FastAPI 接口调用 tests/eval 下的 JSON / JSONL 测试集。命令行等价脚本：<code>python scripts/eval_rag_api.py</code></p>
+
+                <div class="two-col">
+                    <div>
+                        <label for="EVAL_CASES_FILE">测试集文件</label>
+                        <select id="EVAL_CASES_FILE" name="EVAL_CASES_FILE">
+                            {% for item in eval_dataset_options %}
+                            <option value="{{ item.path }}" {% if eval_cases_file == item.path %}selected{% endif %}>{{ item.name }} ({{ item.path }})</option>
+                            {% endfor %}
+                        </select>
+                        <div class="help">默认扫描 tests/eval 目录下的 .json / .jsonl 文件。</div>
+                    </div>
+                    <div>
+                        <label for="EVAL_CASE_LIMIT">评测条数</label>
+                        <input id="EVAL_CASE_LIMIT" name="EVAL_CASE_LIMIT" type="number" min="0" value="{{ eval_case_limit }}">
+                        <div class="help">0 表示运行全部用例；建议先用 10 条试跑。</div>
+                    </div>
+                </div>
+
+                <div class="two-col" style="margin-top: 12px;">
+                    <div>
+                        <label for="EVAL_API_BASE_URL">FastAPI 地址</label>
+                        <input id="EVAL_API_BASE_URL" name="EVAL_API_BASE_URL" type="text" value="{{ eval_api_base_url }}">
+                        <div class="help">需先启动 easy-rag-api；应填本机地址如 http://127.0.0.1:8000，不要填 API_PUBLIC_BASE_URL 对外域名。</div>
+                    </div>
+                    <div></div>
+                </div>
+
+                <div class="button-row">
+                    <button class="btn-secondary" type="submit" formaction="{{ url_for('run_batch_eval') }}">运行批量评测</button>
+                </div>
+
+                {% if eval_summary %}
+                <div class="section-divider"></div>
+                <div class="metrics" style="margin-top: 0;">
+                    <div class="metric">
+                        <div class="label">召回率</div>
+                        <div class="value">{{ "%.1f"|format(eval_summary.retrieval_recall * 100) }}%</div>
+                        <div class="hint">检索 contexts 关键词命中</div>
+                    </div>
+                    <div class="metric">
+                        <div class="label">准确率</div>
+                        <div class="value">{{ "%.1f"|format(eval_summary.answer_accuracy * 100) }}%</div>
+                        <div class="hint">模型 answer 关键词命中</div>
+                    </div>
+                    <div class="metric">
+                        <div class="label">平均响应时间</div>
+                        <div class="value">{{ "%.0f"|format(eval_summary.avg_latency_ms) }} ms</div>
+                        <div class="hint">成功请求平均耗时</div>
+                    </div>
+                    <div class="metric">
+                        <div class="label">运行统计</div>
+                        <div class="value">{{ eval_summary.successful_cases }}/{{ eval_summary.total_cases }}</div>
+                        <div class="hint">成功 / 总计（失败 {{ eval_summary.failed_cases }}）</div>
+                    </div>
+                </div>
+
+                {% if eval_summary and eval_summary.by_category %}
+                <h3 style="margin-top: 18px;">按分类统计</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>分类</th>
+                            <th>召回率</th>
+                            <th>准确率</th>
+                            <th>用例数</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for category, stats in eval_summary.by_category | dictsort %}
+                        <tr>
+                            <td>{{ category }}</td>
+                            <td>{{ "%.1f"|format(stats.retrieval_recall * 100) }}%</td>
+                            <td>{{ "%.1f"|format(stats.answer_accuracy * 100) }}%</td>
+                            <td>{{ stats.total }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% endif %}
+
+                {% if eval_report and eval_report.results %}
+                <h3 style="margin-top: 18px;">失败 / 未命中样例（最多展示 10 条）</h3>
+                {% for item in eval_report.results[:10] %}
+                {% if item.error or (not item.retrieval_hit) or (not item.answer_hit) %}
+                <div class="context-card">
+                    <div class="context-meta">{{ item.id }} | {{ item.category }}{% if item.error %} | 错误：{{ item.error }}{% else %} | 召回：{{ "Y" if item.retrieval_hit else "N" }} | 准确：{{ "Y" if item.answer_hit else "N" }} | {{ item.latency_ms }}ms{% endif %}</div>
+                    <div>{{ item.question }}</div>
+                </div>
+                {% endif %}
+                {% endfor %}
+                {% endif %}
+                {% else %}
+                <div class="result-box" style="margin-top: 16px;">点击「运行批量评测」后，这里会显示召回率、准确率与平均响应时间。</div>
+                {% endif %}
+            </section>
+        </form>
+    </div>
+</body>
+</html>
