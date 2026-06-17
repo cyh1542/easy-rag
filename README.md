@@ -110,7 +110,7 @@ easy-rag/
 | 方法 | 路径 | 说明 |
 |------|------|------|
 | `GET` | `/health` | 健康检查 |
-| `POST` | `/api/v1/rag/chat` | RAG 问答 |
+| `POST` | `/api/v1/rag/chat` | RAG 问答（可在 `.env` 设置 `RAG_API_KEY` 启用鉴权） |
 
 ## Docker
 

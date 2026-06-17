@@ -6,6 +6,8 @@ import pytest
 
 from easy_rag.config import (
     DEFAULT_ENV_VALUES,
+    decode_prompt_text,
+    encode_prompt_text,
     read_env_values,
     save_env_values,
     settings_from_env_values,
@@ -144,3 +146,17 @@ def test_easy_rag_applies_hf_hub_settings(
     settings = settings_from_env_values(values)
     EasyRAG(settings)
     assert os.environ.get("HF_ENDPOINT") == "https://hf-mirror.com"
+
+
+def test_prompt_text_roundtrip() -> None:
+    original = "先理解问题\n再依据上下文回答"
+    encoded = encode_prompt_text(original)
+    assert encoded == "先理解问题\\n再依据上下文回答"
+    assert decode_prompt_text(encoded) == original
+
+
+def test_save_env_values_encodes_thinking_prompt(env_file: Path) -> None:
+    save_env_values({"CHAT_THINKING_PROMPT": "step1\nstep2"})
+    settings = settings_from_env_values(read_env_values())
+    assert settings.chat_thinking_prompt == "step1\nstep2"
+    assert 'CHAT_THINKING_PROMPT="step1\\nstep2"' in env_file.read_text(encoding="utf-8")

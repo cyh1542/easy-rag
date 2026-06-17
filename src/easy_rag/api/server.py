@@ -4,10 +4,14 @@ import threading
 from contextlib import asynccontextmanager
 from typing import Any
 
-from fastapi import APIRouter, FastAPI, HTTPException
+from fastapi import APIRouter, Depends, FastAPI, HTTPException
+from openai import AuthenticationError
 from pydantic import BaseModel, Field
 
+from easy_rag.api.auth import require_rag_api_key
 from easy_rag.config import ENV_FILE, build_api_public_url, get_settings, read_env_values
+from easy_rag.knowledge_bases import resolve_retrieval_profiles
+from easy_rag.knowledge_bases import KNOWLEDGE_BASES_FILE
 from easy_rag.logger_config import setup_logging
 from easy_rag.rag_engine import EasyRAG
 from easy_rag.timing_utils import StageTimer
@@ -26,6 +30,7 @@ _RAG_CACHE_KEYS = (
     "EMBEDDING_API_KEY",
     "EMBEDDING_BASE_URL",
     "CHAT_MODEL",
+    "CHAT_THINKING_PROMPT",
     "EMBEDDING_PROVIDER",
     "EMBEDDING_MODEL",
     "LOCAL_EMBEDDING_MODEL",
@@ -42,6 +47,7 @@ _RAG_CACHE_KEYS = (
     "RERANK_CANDIDATE_K",
     "RRF_K",
     "MYSQL_ENABLED",
+    "RAG_API_KEY",
 )
 
 
@@ -58,10 +64,26 @@ class ChatResponse(BaseModel):
     timing: dict[str, Any] | None = None
 
 
+def _format_chat_error(exc: Exception, timer: StageTimer) -> tuple[int, str]:
+    if isinstance(exc, AuthenticationError):
+        stage_names = [item["name"] for item in timer.summary().get("stages", [])]
+        if timer.has_active("llm_completion") or "llm_completion" in stage_names:
+            return (
+                502,
+                "OPENAI_API_KEY 认证失败，请检查模型设置中的 OPENAI_API_KEY 与 OPENAI_BASE_URL 是否匹配。",
+            )
+        return (
+            502,
+            "EMBEDDING_API_KEY 认证失败，请检查 EMBEDDING_API_KEY 与 EMBEDDING_BASE_URL（留空时回退 OPENAI_API_KEY）。",
+        )
+    return 500, str(exc)
+
+
 def _build_rag_cache_key() -> tuple[Any, ...]:
     env_mtime = ENV_FILE.stat().st_mtime if ENV_FILE.exists() else 0.0
+    kb_mtime = KNOWLEDGE_BASES_FILE.stat().st_mtime if KNOWLEDGE_BASES_FILE.exists() else 0.0
     values = read_env_values()
-    return (env_mtime, *(values.get(key, "") for key in _RAG_CACHE_KEYS))
+    return (env_mtime, kb_mtime, *(values.get(key, "") for key in _RAG_CACHE_KEYS))
 
 
 def _reset_rag_cache() -> None:
@@ -105,9 +127,15 @@ def health() -> dict[str, Any]:
         settings = get_settings()
         return {
             "status": "ok",
+            "auth_enabled": bool(settings.rag_api_key),
             "chat_model": settings.chat_model,
             "embedding_provider": settings.embedding_provider,
             "retrieval_method": settings.retrieval_method,
+            "multi_kb_enabled": len(resolve_retrieval_profiles(settings)) > 0,
+            "active_knowledge_bases": [
+                {"id": profile.id, "name": profile.name, "collection_name": profile.collection_name}
+                for profile in resolve_retrieval_profiles(settings)
+            ],
             "knowledge_dir": str(settings.knowledge_dir),
             "api_public_base_url": settings.api_public_base_url,
             "api_path_prefix": settings.api_path_prefix,
@@ -124,7 +152,7 @@ def health() -> dict[str, Any]:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
-@router.post("/api/v1/rag/chat", response_model=ChatResponse)
+@router.post("/api/v1/rag/chat", response_model=ChatResponse, dependencies=[Depends(require_rag_api_key)])
 def rag_chat(payload: ChatRequest) -> ChatResponse:
     timer = StageTimer()
     started_at = timer.start("api_rag_chat")
@@ -162,7 +190,8 @@ def rag_chat(payload: ChatRequest) -> ChatResponse:
                 record.ended_at,
                 record.duration_ms,
             )
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        status_code, detail = _format_chat_error(exc, timer)
+        raise HTTPException(status_code=status_code, detail=detail) from exc
 
 
 @asynccontextmanager

@@ -9,7 +9,8 @@ from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.request import Request
 
-from easy_rag.config import PROJECT_ROOT, get_settings
+from easy_rag.api.auth import build_rag_api_auth_headers
+from easy_rag.config import PROJECT_ROOT, get_settings, read_env_values
 
 
 DEFAULT_EVAL_DIR = PROJECT_ROOT / "tests" / "eval"
@@ -136,10 +137,12 @@ def _http_json_request(
     timeout: float = 120.0,
     retries: int = 3,
     retry_delay: float = 1.0,
+    api_key: str | None = None,
 ) -> dict[str, Any]:
     opener = _build_http_opener()
     data = None
     headers = {"Accept": "application/json"}
+    headers.update(build_rag_api_auth_headers(api_key or read_env_values().get("RAG_API_KEY", "")))
     if payload is not None:
         data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         headers["Content-Type"] = "application/json; charset=utf-8"

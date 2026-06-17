@@ -47,8 +47,10 @@ uvicorn api_server:api --host 0.0.0.0 --port 8000
 |--------|-----|------|------|
 | `Content-Type` | `application/json` | POST 接口必填 | 请求体为 JSON |
 | `Accept` | `application/json` | 可选 | 建议统一使用 |
+| `X-API-Key` | 配置的 `RAG_API_KEY` | 启用鉴权时必填 | 推荐方式 |
+| `Authorization` | `Bearer <RAG_API_KEY>` | 启用鉴权时可选 | 与 `X-API-Key` 二选一 |
 
-当前版本 **无鉴权**（无 API Key / Token 校验）。生产环境请通过网关、反向代理或网络隔离控制访问。
+在 `.env` 中设置 `RAG_API_KEY` 后，问答接口 `/api/v1/rag/chat` 将要求携带有效密钥；留空则不校验（适合本地开发）。`/health` 始终无需鉴权。
 
 ### 3.2 响应格式
 
@@ -64,6 +66,7 @@ uvicorn api_server:api --host 0.0.0.0 --port 8000
 
 | 状态码 | 场景 |
 |--------|------|
+| `401` | 已启用 `RAG_API_KEY` 但请求未携带或密钥错误 |
 | `422` | 请求体 JSON 格式错误或字段校验失败 |
 | `500` | 服务内部错误（配置无效、向量库为空、模型调用失败等） |
 
@@ -72,6 +75,7 @@ uvicorn api_server:api --host 0.0.0.0 --port 8000
 调用问答接口前请确认：
 
 - [ ] `.env` 中已配置有效的 `OPENAI_API_KEY` 与 `CHAT_MODEL`
+- [ ] 若设置了 `RAG_API_KEY`，调用方需在请求头携带对应密钥
 - [ ] 已通过 Flask 页面或 `python ingest.py` 完成建索引
 - [ ] `storage/chroma` 下存在对应集合的向量数据
 
@@ -109,6 +113,7 @@ Accept: application/json
 ```json
 {
   "status": "ok",
+  "auth_enabled": false,
   "chat_model": "gpt-4o-mini",
   "embedding_provider": "remote",
   "retrieval_method": "vector",
@@ -121,6 +126,7 @@ Accept: application/json
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | `status` | string | 服务状态，正常时为 `ok` |
+| `auth_enabled` | boolean | 是否已启用 `RAG_API_KEY` 鉴权 |
 | `chat_model` | string | 当前聊天模型名称 |
 | `embedding_provider` | string | Embedding 模式：`remote` / `local` / `huggingface` |
 | `retrieval_method` | string | 检索策略：`keyword` / `vector` / `rerank` / `rrf` |
@@ -156,6 +162,7 @@ POST /api/v1/rag/chat HTTP/1.1
 Host: 127.0.0.1:8000
 Content-Type: application/json
 Accept: application/json
+X-API-Key: your-rag-api-key
 
 {
   "question": "RAG 的核心流程是什么？",

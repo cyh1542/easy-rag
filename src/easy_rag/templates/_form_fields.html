@@ -1,6 +1,6 @@
 {% macro hidden_preserve_fields(form_values, exclude=[]) -%}
 {% for key, value in form_values.items() %}
-{% if key not in exclude %}
+{% if key not in exclude and key != 'CHAT_THINKING_PROMPT' %}
 <input type="hidden" name="{{ key }}" value="{{ value }}">
 {% endif %}
 {% endfor %}
@@ -43,6 +43,12 @@
             {% endfor %}
         </select>
     </div>
+</div>
+
+<div>
+    <label for="CHAT_THINKING_PROMPT">CHAT_THINKING_PROMPT</label>
+    <textarea id="CHAT_THINKING_PROMPT" name="CHAT_THINKING_PROMPT" rows="6" placeholder="留空时使用默认系统提示词。可在此编写引导模型逐步思考、组织答案的 System Prompt。">{{ form_values['CHAT_THINKING_PROMPT'] }}</textarea>
+    <div class="help">作为聊天模型的 System Prompt，用于引导模型如何理解上下文并组织回答；保存后对预览页与 API 问答均生效。</div>
 </div>
 
 {% if provider == "remote" %}
@@ -252,6 +258,56 @@
 </label>
 {%- endmacro %}
 
+{% macro multi_kb_fields(kb_registry, kb_profiles, chunk_strategy_options) -%}
+<div class="section-subtitle">多知识库并行检索</div>
+<label class="checkbox-line">
+    <input type="hidden" name="MULTI_KB_ENABLED" value="false">
+    <input name="MULTI_KB_ENABLED" type="checkbox" value="true" {% if kb_registry.enabled %}checked{% endif %}>
+    启用多知识库：按不同切分策略分别建索引，问答时并行检索并合并结果
+</label>
+<div class="help">启用后会对下方每个已勾选的知识库执行建索引；检索阶段使用线程池并行查询各 collection，再按相似度合并取 TOP_K。</div>
+
+<div class="kb-table-wrap">
+<table class="kb-table">
+    <thead>
+        <tr>
+            <th class="col-enable">启用</th>
+            <th class="col-name">名称</th>
+            <th class="col-collection">Collection</th>
+            <th class="col-strategy">切分策略</th>
+            <th class="col-num">Size</th>
+            <th class="col-num">Overlap</th>
+            <th class="col-threshold">语义阈值</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for slot in range(1, kb_profiles|length + 1) %}
+        {% set profile = kb_profiles[slot - 1] %}
+        <tr>
+            <td class="col-enable">
+                <input type="hidden" name="KB{{ slot }}_ID" value="{{ profile.id }}">
+                <input type="hidden" name="KB{{ slot }}_ENABLED" value="false">
+                <input name="KB{{ slot }}_ENABLED" type="checkbox" value="true" {% if profile.enabled %}checked{% endif %}>
+            </td>
+            <td class="col-name"><input name="KB{{ slot }}_NAME" type="text" value="{{ profile.name }}"></td>
+            <td class="col-collection"><input name="KB{{ slot }}_COLLECTION_NAME" type="text" value="{{ profile.collection_name }}"></td>
+            <td class="col-strategy">
+                <select name="KB{{ slot }}_CHUNK_STRATEGY">
+                    {% for strategy in chunk_strategy_options %}
+                    <option value="{{ strategy }}" {% if profile.chunk_strategy == strategy %}selected{% endif %}>{{ strategy }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+            <td class="col-num"><input name="KB{{ slot }}_CHUNK_SIZE" type="number" min="1" value="{{ profile.chunk_size }}"></td>
+            <td class="col-num"><input name="KB{{ slot }}_CHUNK_OVERLAP" type="number" min="0" value="{{ profile.chunk_overlap }}"></td>
+            <td class="col-threshold"><input name="KB{{ slot }}_SEMANTIC_CHUNK_THRESHOLD" type="number" step="0.01" min="0" max="1" value="{{ profile.semantic_chunk_threshold }}"></td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+{%- endmacro %}
+
 {% macro api_fields(form_values) -%}
 <div class="two-col">
     <div>
@@ -277,6 +333,12 @@
         <input id="API_BIND_PORT" name="API_BIND_PORT" type="number" value="{{ form_values['API_BIND_PORT'] }}">
         <div class="help">FastAPI 监听端口，默认 8000。</div>
     </div>
+</div>
+
+<div>
+    <label for="RAG_API_KEY">RAG_API_KEY</label>
+    <input id="RAG_API_KEY" name="RAG_API_KEY" type="password" value="{{ form_values['RAG_API_KEY'] }}">
+    <div class="help">对外 API 访问密钥；留空表示不启用鉴权。调用 /api/v1/rag/chat 时在请求头携带 X-API-Key 或 Authorization: Bearer。</div>
 </div>
 {%- endmacro %}
 

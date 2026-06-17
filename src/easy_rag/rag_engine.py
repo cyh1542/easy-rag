@@ -5,6 +5,7 @@ import math
 import shutil
 import re
 import xml.etree.ElementTree as ET
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
 
@@ -20,6 +21,13 @@ from docx import Document
 from pptx import Presentation
 
 from easy_rag.config import Settings, apply_hf_hub_settings
+from easy_rag.knowledge_bases import (
+    ChunkConfig,
+    KnowledgeBaseProfile,
+    chunk_config_from_settings,
+    merge_retrieval_results,
+    resolve_retrieval_profiles,
+)
 from easy_rag.logger_config import setup_logging
 from easy_rag.timing_utils import StageTimer
 
@@ -44,7 +52,126 @@ STRUCTURE_SPLIT_PATTERN = re.compile(
     re.MULTILINE,
 )
 RECURSIVE_SEPARATORS = ["\n\n", "\n", "。", "！", "？", ".", "!", "?", "；", ";", " ", ""]
+FILE_PATH_METADATA_KEYS = (
+    "file_name",
+    "file_stem",
+    "file_suffix",
+    "relative_path",
+    "parent_dir",
+    "document_type",
+)
 logger = setup_logging()
+
+
+def _build_file_path_metadata(file_path: Path, knowledge_dir: Path) -> dict[str, str]:
+    resolved = file_path.resolve()
+    knowledge_root = knowledge_dir.resolve()
+    try:
+        relative_path = resolved.relative_to(knowledge_root).as_posix()
+    except ValueError:
+        relative_path = resolved.as_posix()
+
+    parent = Path(relative_path).parent
+    parent_dir = "" if str(parent) in {"", "."} else parent.as_posix()
+
+    return {
+        "source": file_path.name,
+        "path": str(resolved),
+        "file_name": file_path.name,
+        "file_stem": file_path.stem,
+        "file_suffix": file_path.suffix.lower(),
+        "relative_path": relative_path,
+        "parent_dir": parent_dir,
+        "document_type": "file",
+    }
+
+
+def _build_mysql_document_metadata(
+    *,
+    source: str,
+    path: str,
+    document_type: str,
+) -> dict[str, str]:
+    return {
+        "source": source,
+        "path": path,
+        "file_name": source,
+        "file_stem": source,
+        "file_suffix": "",
+        "relative_path": source,
+        "parent_dir": "",
+        "document_type": document_type,
+    }
+
+
+def _chunk_metadata_from_document(
+    document: dict[str, Any],
+    *,
+    chunk_index: int,
+    kb_id: str = "",
+    collection_name: str = "",
+) -> dict[str, Any]:
+    metadata: dict[str, Any] = {
+        "source": document.get("source", ""),
+        "path": document.get("path", ""),
+        "chunk_index": chunk_index,
+        "kb_id": kb_id,
+        "collection_name": collection_name,
+    }
+    for key in FILE_PATH_METADATA_KEYS:
+        value = document.get(key)
+        if value not in (None, ""):
+            metadata[key] = value
+    return metadata
+
+
+def _context_item_from_metadata(
+    metadata: dict[str, Any],
+    content: str,
+    **extra: Any,
+) -> dict[str, Any]:
+    item: dict[str, Any] = {
+        "content": content,
+        "source": str(metadata.get("source", "unknown")),
+        "path": str(metadata.get("path", "")),
+    }
+    for key in FILE_PATH_METADATA_KEYS:
+        value = metadata.get(key)
+        if value not in (None, ""):
+            item[key] = value
+    chunk_index = metadata.get("chunk_index")
+    if chunk_index is not None:
+        item["chunk_index"] = chunk_index
+    item.update(extra)
+    return item
+
+
+def _format_context_label(item: dict[str, Any]) -> str:
+    return str(item.get("relative_path") or item.get("file_name") or item.get("source") or "unknown")
+
+
+def _seed_fused_item(item: dict[str, Any]) -> dict[str, Any]:
+    seeded: dict[str, Any] = {
+        "content": item.get("content", ""),
+        "source": item.get("source", "unknown"),
+        "path": item.get("path", ""),
+        "score": 0.0,
+    }
+    for key in FILE_PATH_METADATA_KEYS:
+        value = item.get(key)
+        if value not in (None, ""):
+            seeded[key] = value
+    chunk_index = item.get("chunk_index")
+    if chunk_index is not None:
+        seeded["chunk_index"] = chunk_index
+    return seeded
+
+DEFAULT_CHAT_SYSTEM_PROMPT = (
+    "你是一个严谨的中文知识库问答助手。"
+    "请优先依据检索到的上下文回答问题。"
+    "如果上下文不足以支持结论，请明确说明不知道或信息不足，"
+    "不要编造事实。"
+)
 
 
 class EasyRAG:
@@ -59,6 +186,12 @@ class EasyRAG:
         self._embedding_client: OpenAI | None = None
         self._local_embedding_model: Any | None = None
         self._vector_client: Any | None = None
+        self._active_chunk_config: ChunkConfig | None = None
+
+    def _chunk(self) -> ChunkConfig:
+        if self._active_chunk_config is not None:
+            return self._active_chunk_config
+        return chunk_config_from_settings(self.settings)
 
     def _validate_settings(self) -> None:
         if self.settings.chunk_overlap >= self.settings.chunk_size:
@@ -129,6 +262,22 @@ class EasyRAG:
         if configured_key:
             return configured_key
         return self.settings.api_key
+
+    def _resolve_chat_system_prompt(self) -> str:
+        custom = self.settings.chat_thinking_prompt.strip()
+        return custom or DEFAULT_CHAT_SYSTEM_PROMPT
+
+    def _format_context_block(self, index: int, item: dict[str, Any]) -> str:
+        label = _format_context_label(item)
+        lines = [f"[片段 {index}]", f"来源: {label}"]
+        file_path = str(item.get("path", "")).strip()
+        if file_path and file_path != label:
+            lines.append(f"路径: {file_path}")
+        parent_dir = str(item.get("parent_dir", "")).strip()
+        if parent_dir:
+            lines.append(f"目录: {parent_dir}")
+        lines.append(f"内容: {item.get('content', '')}")
+        return "\n".join(lines)
 
     def _get_openai_client(self) -> OpenAI:
         self._validate_openai_api_key()
@@ -417,8 +566,7 @@ class EasyRAG:
 
             documents.append(
                 {
-                    "source": file_path.name,
-                    "path": str(file_path),
+                    **_build_file_path_metadata(file_path, self.settings.knowledge_dir),
                     "content": content.replace("\r\n", "\n").replace("\r", "\n"),
                 }
             )
@@ -439,10 +587,13 @@ class EasyRAG:
                 if content:
                     documents.append(
                         {
-                            "source": "mysql_query",
-                            "path": (
-                                f"mysql://{self.settings.mysql_host}:{self.settings.mysql_port}/"
-                                f"{self.settings.mysql_database}/query"
+                            **_build_mysql_document_metadata(
+                                source="mysql_query",
+                                path=(
+                                    f"mysql://{self.settings.mysql_host}:{self.settings.mysql_port}/"
+                                    f"{self.settings.mysql_database}/query"
+                                ),
+                                document_type="mysql_query",
                             ),
                             "content": content,
                         }
@@ -459,10 +610,13 @@ class EasyRAG:
                 if content:
                     documents.append(
                         {
-                            "source": f"mysql_table:{table_name}",
-                            "path": (
-                                f"mysql://{self.settings.mysql_host}:{self.settings.mysql_port}/"
-                                f"{self.settings.mysql_database}/{table_name}"
+                            **_build_mysql_document_metadata(
+                                source=f"mysql_table:{table_name}",
+                                path=(
+                                    f"mysql://{self.settings.mysql_host}:{self.settings.mysql_port}/"
+                                    f"{self.settings.mysql_database}/{table_name}"
+                                ),
+                                document_type="mysql_table",
                             ),
                             "content": content,
                         }
@@ -480,20 +634,25 @@ class EasyRAG:
             "documents": len(documents),
         }
 
-    def split_text(self, text: str) -> list[str]:
+    def split_text(self, text: str, chunk_config: ChunkConfig | None = None) -> list[str]:
         normalized = text.replace("\r\n", "\n").replace("\r", "\n").strip()
         if not normalized:
             return []
 
-        strategy = self.settings.chunk_strategy
-        logger.debug("当前切分策略: %s", strategy)
-        if strategy == "fixed":
-            return self._split_text_fixed(normalized)
-        if strategy == "recursive":
-            return self._split_text_recursive(normalized)
-        if strategy == "semantic":
-            return self._split_text_semantic(normalized)
-        return self._split_text_structure(normalized)
+        previous = self._active_chunk_config
+        self._active_chunk_config = chunk_config or chunk_config_from_settings(self.settings)
+        try:
+            strategy = self._chunk().chunk_strategy
+            logger.debug("当前切分策略: %s", strategy)
+            if strategy == "fixed":
+                return self._split_text_fixed(normalized)
+            if strategy == "recursive":
+                return self._split_text_recursive(normalized)
+            if strategy == "semantic":
+                return self._split_text_semantic(normalized)
+            return self._split_text_structure(normalized)
+        finally:
+            self._active_chunk_config = previous
 
     def _split_text_fixed(self, text: str) -> list[str]:
         paragraphs = [item.strip() for item in text.split("\n\n") if item.strip()]
@@ -504,9 +663,9 @@ class EasyRAG:
         current = ""
 
         for paragraph in paragraphs:
-            if len(paragraph) <= self.settings.chunk_size:
+            if len(paragraph) <= self._chunk().chunk_size:
                 candidate = f"{current}\n\n{paragraph}".strip() if current else paragraph
-                if len(candidate) <= self.settings.chunk_size:
+                if len(candidate) <= self._chunk().chunk_size:
                     current = candidate
                     continue
 
@@ -521,13 +680,13 @@ class EasyRAG:
 
             start = 0
             while start < len(paragraph):
-                end = min(start + self.settings.chunk_size, len(paragraph))
+                end = min(start + self._chunk().chunk_size, len(paragraph))
                 piece = paragraph[start:end].strip()
                 if piece:
                     chunks.append(piece)
                 if end >= len(paragraph):
                     break
-                start = end - self.settings.chunk_overlap
+                start = end - self._chunk().chunk_overlap
 
         if current:
             chunks.append(current)
@@ -535,12 +694,12 @@ class EasyRAG:
         return chunks
 
     def _apply_chunk_overlap(self, chunks: list[str]) -> list[str]:
-        if self.settings.chunk_overlap <= 0 or len(chunks) <= 1:
+        if self._chunk().chunk_overlap <= 0 or len(chunks) <= 1:
             return chunks
 
         overlapped = [chunks[0]]
         for index in range(1, len(chunks)):
-            prefix = chunks[index - 1][-self.settings.chunk_overlap :]
+            prefix = chunks[index - 1][-self._chunk().chunk_overlap :]
             piece = chunks[index]
             overlapped.append(f"{prefix}{piece}" if prefix else piece)
         return overlapped
@@ -549,7 +708,7 @@ class EasyRAG:
         cleaned = text.strip()
         if not cleaned:
             return []
-        if len(cleaned) <= self.settings.chunk_size:
+        if len(cleaned) <= self._chunk().chunk_size:
             return [cleaned]
 
         separator = separators[-1]
@@ -571,7 +730,7 @@ class EasyRAG:
             if not segment:
                 continue
             joined = f"{current}{separator}{segment}".strip() if current else segment
-            if len(joined) <= self.settings.chunk_size:
+            if len(joined) <= self._chunk().chunk_size:
                 current = joined
                 continue
             if current:
@@ -582,7 +741,7 @@ class EasyRAG:
 
         final_chunks: list[str] = []
         for piece in merged:
-            if len(piece) <= self.settings.chunk_size:
+            if len(piece) <= self._chunk().chunk_size:
                 final_chunks.append(piece)
             else:
                 final_chunks.extend(self._recursive_split(piece, next_separators))
@@ -601,7 +760,7 @@ class EasyRAG:
         if not sentences:
             return []
         if len(sentences) == 1:
-            if len(sentences[0]) <= self.settings.chunk_size:
+            if len(sentences[0]) <= self._chunk().chunk_size:
                 return sentences
             return self._split_text_fixed(sentences[0])
 
@@ -614,8 +773,8 @@ class EasyRAG:
             similarity = self._cosine_similarity(current_embedding, embeddings[index])
             candidate = f"{current}{sentences[index]}"
             if (
-                similarity >= self.settings.semantic_chunk_threshold
-                and len(candidate) <= self.settings.chunk_size
+                similarity >= self._chunk().semantic_chunk_threshold
+                and len(candidate) <= self._chunk().chunk_size
             ):
                 current = candidate
                 current_embedding = embeddings[index]
@@ -631,7 +790,7 @@ class EasyRAG:
 
         final_chunks: list[str] = []
         for group in groups:
-            if len(group) <= self.settings.chunk_size:
+            if len(group) <= self._chunk().chunk_size:
                 final_chunks.append(group)
             else:
                 final_chunks.extend(self._split_text_fixed(group))
@@ -663,7 +822,7 @@ class EasyRAG:
             cleaned = section.strip()
             if not cleaned:
                 continue
-            if len(cleaned) <= self.settings.chunk_size:
+            if len(cleaned) <= self._chunk().chunk_size:
                 chunks.append(cleaned)
             else:
                 chunks.extend(self._split_text_recursive(cleaned))
@@ -719,8 +878,8 @@ class EasyRAG:
             return 0.0
         return dot / (norm_a * norm_b)
 
-    def _keyword_retrieve(self, question: str) -> list[dict[str, Any]]:
-        collection = self._get_collection()
+    def _keyword_retrieve(self, question: str, collection_name: str | None = None) -> list[dict[str, Any]]:
+        collection = self._get_collection(collection_name)
         result = collection.get(include=["documents", "metadatas", "embeddings"])
         documents = result.get("documents", [])
         metadatas = result.get("metadatas", [])
@@ -732,20 +891,24 @@ class EasyRAG:
                 continue
             metadata = metadatas[index] if index < len(metadatas) else {}
             ranked.append(
-                {
-                    "content": document,
-                    "source": metadata.get("source", "unknown"),
-                    "path": metadata.get("path", ""),
-                    "distance": round(1 - score, 6),
-                    "score": score,
-                }
+                _context_item_from_metadata(
+                    metadata,
+                    document or "",
+                    distance=round(1 - score, 6),
+                    score=score,
+                )
             )
 
         ranked.sort(key=lambda item: item["score"], reverse=True)
         return ranked[: self.settings.top_k]
 
-    def _keyword_retrieve_candidates(self, question: str, n_results: int) -> list[dict[str, Any]]:
-        collection = self._get_collection()
+    def _keyword_retrieve_candidates(
+        self,
+        question: str,
+        n_results: int,
+        collection_name: str | None = None,
+    ) -> list[dict[str, Any]]:
+        collection = self._get_collection(collection_name)
         result = collection.get(include=["documents", "metadatas", "embeddings"])
         documents = result.get("documents", [])
         metadatas = result.get("metadatas", [])
@@ -757,20 +920,24 @@ class EasyRAG:
                 continue
             metadata = metadatas[index] if index < len(metadatas) else {}
             ranked.append(
-                {
-                    "content": document,
-                    "source": metadata.get("source", "unknown"),
-                    "path": metadata.get("path", ""),
-                    "distance": round(1 - score, 6),
-                    "score": score,
-                }
+                _context_item_from_metadata(
+                    metadata,
+                    document or "",
+                    distance=round(1 - score, 6),
+                    score=score,
+                )
             )
 
         ranked.sort(key=lambda item: item["score"], reverse=True)
         return ranked[:n_results]
 
-    def _vector_retrieve(self, question: str, n_results: int) -> list[dict[str, Any]]:
-        collection = self._get_collection()
+    def _vector_retrieve(
+        self,
+        question: str,
+        n_results: int,
+        collection_name: str | None = None,
+    ) -> list[dict[str, Any]]:
+        collection = self._get_collection(collection_name)
         if collection.count() == 0:
             return []
 
@@ -792,13 +959,12 @@ class EasyRAG:
             distance = distances[index] if index < len(distances) else None
             embedding = embeddings[index] if index < len(embeddings) else None
             items.append(
-                {
-                    "content": document,
-                    "source": metadata.get("source", "unknown"),
-                    "path": metadata.get("path", ""),
-                    "distance": distance,
-                    "embedding": embedding,
-                }
+                _context_item_from_metadata(
+                    metadata,
+                    document or "",
+                    distance=distance,
+                    embedding=embedding,
+                )
             )
         return items
 
@@ -822,12 +988,7 @@ class EasyRAG:
 
         ranked.sort(key=lambda item: item["score"], reverse=True)
         return [
-            {
-                "content": item["content"],
-                "source": item["source"],
-                "path": item["path"],
-                "distance": item["distance"],
-            }
+            {key: value for key, value in item.items() if key != "embedding"}
             for item in ranked[: self.settings.top_k]
         ]
 
@@ -840,28 +1001,12 @@ class EasyRAG:
 
         for rank, item in enumerate(keyword_items, start=1):
             key = (item.get("source", "unknown"), item.get("content", ""))
-            fused_scores.setdefault(
-                key,
-                {
-                    "content": item.get("content", ""),
-                    "source": item.get("source", "unknown"),
-                    "path": item.get("path", ""),
-                    "score": 0.0,
-                },
-            )
+            fused_scores.setdefault(key, _seed_fused_item(item))
             fused_scores[key]["score"] += 1.0 / (self.settings.rrf_k + rank)
 
         for rank, item in enumerate(vector_items, start=1):
             key = (item.get("source", "unknown"), item.get("content", ""))
-            fused_scores.setdefault(
-                key,
-                {
-                    "content": item.get("content", ""),
-                    "source": item.get("source", "unknown"),
-                    "path": item.get("path", ""),
-                    "score": 0.0,
-                },
-            )
+            fused_scores.setdefault(key, _seed_fused_item(item))
             fused_scores[key]["score"] += 1.0 / (self.settings.rrf_k + rank)
 
         ranked = sorted(
@@ -872,10 +1017,12 @@ class EasyRAG:
 
         return [
             {
-                "content": item["content"],
-                "source": item["source"],
-                "path": item["path"],
-                "distance": round(1 - item["score"], 6),
+                key: value
+                for key, value in {
+                    **item,
+                    "distance": round(1 - item["score"], 6),
+                }.items()
+                if key != "score"
             }
             for item in ranked[: self.settings.top_k]
         ]
@@ -911,16 +1058,25 @@ class EasyRAG:
             logger.info("Chroma PersistentClient 已在重建后的目录中恢复")
             return self._vector_client
 
-    def _get_collection(self) -> Any:
+    def _get_collection(self, collection_name: str | None = None) -> Any:
+        name = collection_name or self.settings.collection_name
         return self._get_vector_client().get_or_create_collection(
-            name=self.settings.collection_name,
+            name=name,
             metadata={"hnsw:space": "cosine"},
         )
 
-    def build_index(self, reset: bool = True, batch_size: int = 32) -> dict[str, int]:
+    def build_index(
+        self,
+        reset: bool = True,
+        batch_size: int = 32,
+        profile: KnowledgeBaseProfile | None = None,
+    ) -> dict[str, int | str]:
+        collection_name = profile.collection_name if profile else self.settings.collection_name
+        chunk_config = profile.to_chunk_config() if profile else None
         logger.info(
-            "开始读取文档并构建索引: chunk_strategy=%s embedding_provider=%s batch_size=%s",
-            self.settings.chunk_strategy,
+            "开始读取文档并构建索引: collection=%s chunk_strategy=%s embedding_provider=%s batch_size=%s",
+            collection_name,
+            (chunk_config.chunk_strategy if chunk_config else self.settings.chunk_strategy),
             self.settings.embedding_provider,
             batch_size,
         )
@@ -932,27 +1088,29 @@ class EasyRAG:
 
         if reset:
             try:
-                self._get_vector_client().delete_collection(self.settings.collection_name)
+                self._get_vector_client().delete_collection(collection_name)
             except Exception:
                 pass
 
-        collection = self._get_collection()
+        collection = self._get_collection(collection_name)
 
         all_ids: list[str] = []
         all_chunks: list[str] = []
         all_metadatas: list[dict[str, Any]] = []
 
+        profile_prefix = profile.id if profile else "default"
         for doc_index, document in enumerate(documents):
-            chunks = self.split_text(document["content"])
+            chunks = self.split_text(document["content"], chunk_config=chunk_config)
             for chunk_index, chunk in enumerate(chunks):
-                all_ids.append(f"doc-{doc_index}-chunk-{chunk_index}")
+                all_ids.append(f"{profile_prefix}-doc-{doc_index}-chunk-{chunk_index}")
                 all_chunks.append(chunk)
                 all_metadatas.append(
-                    {
-                        "source": document["source"],
-                        "path": document["path"],
-                        "chunk_index": chunk_index,
-                    }
+                    _chunk_metadata_from_document(
+                        document,
+                        chunk_index=chunk_index,
+                        kb_id=profile.id if profile else "",
+                        collection_name=collection_name,
+                    )
                 )
 
         if not all_chunks:
@@ -969,39 +1127,135 @@ class EasyRAG:
                 embeddings=batch_embeddings,
             )
 
-        logger.info("索引构建写入完成: documents=%s chunks=%s", source_summary.get("documents"), len(all_chunks))
+        logger.info(
+            "索引构建写入完成: collection=%s documents=%s chunks=%s",
+            collection_name,
+            source_summary.get("documents"),
+            len(all_chunks),
+        )
         return {
             **source_summary,
+            "collection_name": collection_name,
             "chunks": len(all_chunks),
         }
 
+    def build_multi_knowledge_bases(
+        self,
+        profiles: list[KnowledgeBaseProfile],
+        *,
+        reset: bool = True,
+        batch_size: int = 32,
+    ) -> dict[str, Any]:
+        if not profiles:
+            raise ValueError("请至少选择一个知识库配置。")
+
+        summaries: dict[str, Any] = {}
+        for profile in profiles:
+            summaries[profile.id] = self.build_index(reset=reset, batch_size=batch_size, profile=profile)
+        summaries["profiles"] = [profile.id for profile in profiles]
+        summaries["collections"] = [profile.collection_name for profile in profiles]
+        return summaries
+
+    def _retrieve_from_collection(
+        self,
+        question: str,
+        collection_name: str,
+    ) -> list[dict[str, Any]]:
+        if self.settings.retrieval_method == "keyword":
+            items = self._keyword_retrieve(question, collection_name=collection_name)
+        elif self.settings.retrieval_method == "vector":
+            vector_items = self._vector_retrieve(
+                question,
+                n_results=self.settings.top_k,
+                collection_name=collection_name,
+            )
+            items = [{**item, "collection_name": collection_name} for item in vector_items]
+        elif self.settings.retrieval_method == "rerank":
+            vector_items = self._vector_retrieve(
+                question,
+                n_results=self.settings.rerank_candidate_k,
+                collection_name=collection_name,
+            )
+            items = self._rerank_results(question, vector_items)
+            for item in items:
+                item["collection_name"] = collection_name
+        else:
+            keyword_items = self._keyword_retrieve_candidates(
+                question,
+                self.settings.rerank_candidate_k,
+                collection_name=collection_name,
+            )
+            vector_items = self._vector_retrieve(
+                question,
+                n_results=self.settings.rerank_candidate_k,
+                collection_name=collection_name,
+            )
+            items = self._rrf_fuse_results(keyword_items, vector_items)
+            for item in items:
+                item["collection_name"] = collection_name
+        return items
+
+    def retrieve_multi(
+        self,
+        question: str,
+        profiles: list[KnowledgeBaseProfile],
+        timer: StageTimer | None = None,
+    ) -> list[dict[str, Any]]:
+        if not profiles:
+            return self.retrieve(question, timer=timer)
+
+        if timer:
+            started_at = timer.start("vector_retrieve")
+            logger.info("STAGE_START | vector_retrieve | started_at=%s", started_at)
+
+        per_collection_k = max(self.settings.top_k, self.settings.rerank_candidate_k)
+        groups: list[list[dict[str, Any]]] = []
+        workers = min(len(profiles), 4)
+
+        def _fetch(profile: KnowledgeBaseProfile) -> list[dict[str, Any]]:
+            items = self._retrieve_from_collection(question, profile.collection_name)
+            for item in items:
+                item["kb_id"] = profile.id
+                item["kb_name"] = profile.name
+            return items[:per_collection_k]
+
+        if workers <= 1:
+            groups = [_fetch(profile) for profile in profiles]
+        else:
+            with ThreadPoolExecutor(max_workers=workers) as executor:
+                future_map = {executor.submit(_fetch, profile): profile for profile in profiles}
+                for future in as_completed(future_map):
+                    groups.append(future.result())
+
+        items = merge_retrieval_results(groups, self.settings.top_k)
+        logger.info(
+            "多知识库并行检索完成: profiles=%s merged_hits=%s",
+            [profile.id for profile in profiles],
+            len(items),
+        )
+
+        if timer:
+            record = timer.end("vector_retrieve")
+            logger.info(
+                "STAGE_END | %s | started_at=%s | ended_at=%s | duration_ms=%s",
+                record.name,
+                record.started_at,
+                record.ended_at,
+                record.duration_ms,
+            )
+        return items
+
     def retrieve(self, question: str, timer: StageTimer | None = None) -> list[dict[str, Any]]:
+        profiles = resolve_retrieval_profiles(self.settings)
+        if profiles:
+            return self.retrieve_multi(question, profiles, timer=timer)
+
         if timer:
             started_at = timer.start("vector_retrieve")
             logger.info("STAGE_START | vector_retrieve | started_at=%s", started_at)
 
         logger.info("当前检索模式: %s", self.settings.retrieval_method)
-
-        if self.settings.retrieval_method == "keyword":
-            items = self._keyword_retrieve(question)
-        elif self.settings.retrieval_method == "vector":
-            vector_items = self._vector_retrieve(question, n_results=self.settings.top_k)
-            items = [
-                {
-                    "content": item["content"],
-                    "source": item["source"],
-                    "path": item["path"],
-                    "distance": item["distance"],
-                }
-                for item in vector_items
-            ]
-        elif self.settings.retrieval_method == "rerank":
-            vector_items = self._vector_retrieve(question, n_results=self.settings.rerank_candidate_k)
-            items = self._rerank_results(question, vector_items)
-        else:
-            keyword_items = self._keyword_retrieve_candidates(question, self.settings.rerank_candidate_k)
-            vector_items = self._vector_retrieve(question, n_results=self.settings.rerank_candidate_k)
-            items = self._rrf_fuse_results(keyword_items, vector_items)
+        items = self._retrieve_from_collection(question, self.settings.collection_name)
 
         if timer:
             record = timer.end("vector_retrieve")
@@ -1027,7 +1281,7 @@ class EasyRAG:
             started_at = timer.start("build_prompt_context")
             logger.info("STAGE_START | build_prompt_context | started_at=%s", started_at)
         context_text = "\n\n".join(
-            f"[片段 {index}]\n来源: {item['source']}\n内容: {item['content']}"
+            self._format_context_block(index, item)
             for index, item in enumerate(contexts, start=1)
         )
         references = list(dict.fromkeys(item["source"] for item in contexts))
@@ -1050,12 +1304,7 @@ class EasyRAG:
             messages=[
                 {
                     "role": "system",
-                    "content": (
-                        "你是一个严谨的中文知识库问答助手。"
-                        "请优先依据检索到的上下文回答问题。"
-                        "如果上下文不足以支持结论，请明确说明不知道或信息不足，"
-                        "不要编造事实。"
-                    ),
+                    "content": self._resolve_chat_system_prompt(),
                 },
                 {
                     "role": "user",

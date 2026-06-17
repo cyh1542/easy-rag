@@ -78,6 +78,13 @@ class TestApiKeyValidation:
 
 
 class TestTextSplitting:
+    def test_custom_chat_system_prompt(self, rag: EasyRAG) -> None:
+        rag.settings.chat_thinking_prompt = "请先列出思考步骤，再给出结论。"
+        assert rag._resolve_chat_system_prompt() == "请先列出思考步骤，再给出结论。"
+
+    def test_default_chat_system_prompt_when_empty(self, rag: EasyRAG) -> None:
+        rag.settings.chat_thinking_prompt = ""
+        assert "知识库问答助手" in rag._resolve_chat_system_prompt()
     def test_split_text_merges_short_paragraphs(self, rag: EasyRAG) -> None:
         rag.settings.chunk_strategy = "fixed"
         rag.settings.chunk_size = 200
@@ -182,7 +189,26 @@ class TestFileLoading:
         documents = rag.load_file_documents()
         assert len(documents) == 1
         assert documents[0]["source"] == "sample.md"
+        assert documents[0]["file_name"] == "sample.md"
+        assert documents[0]["relative_path"] == "sample.md"
+        assert documents[0]["document_type"] == "file"
         assert "RAG" in documents[0]["content"]
+
+    def test_load_file_documents_includes_subdirectory_path(
+        self,
+        rag: EasyRAG,
+        tmp_dirs: dict[str, Path],
+    ) -> None:
+        nested_dir = tmp_dirs["knowledge_dir"] / "sop"
+        nested_dir.mkdir()
+        nested_file = nested_dir / "guide.md"
+        nested_file.write_text("子目录文档", encoding="utf-8")
+
+        documents = rag.load_file_documents()
+        matched = [item for item in documents if item["file_name"] == "guide.md"]
+        assert len(matched) == 1
+        assert matched[0]["relative_path"] == "sop/guide.md"
+        assert matched[0]["parent_dir"] == "sop"
 
     def test_read_text_file_multiple_encodings(self, rag: EasyRAG, tmp_dirs: dict[str, Path]) -> None:
         file_path = tmp_dirs["knowledge_dir"] / "gbk.txt"
@@ -252,6 +278,8 @@ class TestIndexAndRetrieve:
         items = rag.retrieve("RAG 是什么")
         assert items
         assert items[0]["source"] == "sample.md"
+        assert items[0]["file_name"] == "sample.md"
+        assert items[0]["relative_path"] == "sample.md"
         assert "content" in items[0]
 
     def test_keyword_retrieve_returns_matches(

@@ -10,6 +10,11 @@
       "key": "baseUrl",
       "value": "http://127.0.0.1:8000",
       "type": "string"
+    },
+    {
+      "key": "ragApiKey",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -84,6 +89,11 @@
               {
                 "key": "Accept",
                 "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "X-API-Key",
+                "value": "{{ragApiKey}}",
                 "type": "text"
               }
             ],
@@ -231,6 +241,11 @@
                 "key": "Accept",
                 "value": "application/json",
                 "type": "text"
+              },
+              {
+                "key": "X-API-Key",
+                "value": "{{ragApiKey}}",
+                "type": "text"
               }
             ],
             "body": {
@@ -302,6 +317,11 @@
               {
                 "key": "Accept",
                 "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "X-API-Key",
+                "value": "{{ragApiKey}}",
                 "type": "text"
               }
             ],

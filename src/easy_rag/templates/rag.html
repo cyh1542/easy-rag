@@ -29,6 +29,7 @@
                 <section class="card">
                     <div class="section-subtitle">当前预览目录：{{ knowledge_preview_dir }}</div>
                     {{ forms.rag_fields(form_values) }}
+                    {{ forms.multi_kb_fields(kb_registry, kb_profiles, chunk_strategy_options) }}
                     <div class="button-row">
                         <button class="btn-secondary" type="submit" formaction="{{ url_for('preview_files') }}">预览知识库文件</button>
                         <button class="btn-secondary" type="submit" formaction="{{ url_for('save_config') }}">保存 RAG 配置</button>

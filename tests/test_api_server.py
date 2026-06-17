@@ -192,3 +192,86 @@ def test_get_rag_rebuilds_when_env_changes(
         assert mock_cls.call_count == 2
 
     _reset_rag_cache()
+
+
+def test_health_reports_auth_enabled(
+    env_file: Path,
+    tmp_dirs: dict[str, Path],
+    base_env_values: dict[str, str],
+) -> None:
+    from easy_rag.config import save_env_values
+
+    values = make_env_values(tmp_dirs, base_env_values, RAG_API_KEY="secret-key")
+    save_env_values(values)
+    client = TestClient(create_api())
+
+    payload = client.get("/health").json()
+    assert payload["auth_enabled"] is True
+
+
+def test_rag_chat_requires_api_key_when_configured(
+    env_file: Path,
+    tmp_dirs: dict[str, Path],
+    base_env_values: dict[str, str],
+) -> None:
+    from easy_rag.config import save_env_values
+
+    values = make_env_values(tmp_dirs, base_env_values, RAG_API_KEY="secret-key")
+    save_env_values(values)
+    client = TestClient(create_api())
+
+    response = client.post("/api/v1/rag/chat", json={"question": "测试"})
+    assert response.status_code == 401
+    assert "RAG API Key" in response.json()["detail"]
+
+
+def test_rag_chat_accepts_x_api_key(
+    env_file: Path,
+    tmp_dirs: dict[str, Path],
+    base_env_values: dict[str, str],
+) -> None:
+    from easy_rag.config import save_env_values
+
+    values = make_env_values(tmp_dirs, base_env_values, RAG_API_KEY="secret-key")
+    save_env_values(values)
+    client = TestClient(create_api())
+
+    with patch("easy_rag.api.server._get_rag") as mock_build:
+        mock_rag = MagicMock()
+        mock_rag.answer.return_value = {"answer": "ok", "references": [], "contexts": []}
+        mock_build.return_value = mock_rag
+
+        response = client.post(
+            "/api/v1/rag/chat",
+            json={"question": "测试"},
+            headers={"X-API-Key": "secret-key"},
+        )
+
+    assert response.status_code == 200
+    assert response.json()["answer"] == "ok"
+
+
+def test_rag_chat_accepts_bearer_token(
+    env_file: Path,
+    tmp_dirs: dict[str, Path],
+    base_env_values: dict[str, str],
+) -> None:
+    from easy_rag.config import save_env_values
+
+    values = make_env_values(tmp_dirs, base_env_values, RAG_API_KEY="secret-key")
+    save_env_values(values)
+    client = TestClient(create_api())
+
+    with patch("easy_rag.api.server._get_rag") as mock_build:
+        mock_rag = MagicMock()
+        mock_rag.answer.return_value = {"answer": "bearer ok", "references": [], "contexts": []}
+        mock_build.return_value = mock_rag
+
+        response = client.post(
+            "/api/v1/rag/chat",
+            json={"question": "测试"},
+            headers={"Authorization": "Bearer secret-key"},
+        )
+
+    assert response.status_code == 200
+    assert response.json()["answer"] == "bearer ok"

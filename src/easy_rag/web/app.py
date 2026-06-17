@@ -13,6 +13,7 @@ from easy_rag.config import (
     DEFAULT_ENV_VALUES,
     PROJECT_ROOT,
     build_api_public_url,
+    decode_prompt_text,
     read_env_values,
     save_env_values,
     settings_from_env_values,
@@ -23,6 +24,13 @@ from easy_rag.eval_runner import (
     normalize_eval_api_base_url,
     resolve_eval_cases_path,
     run_evaluation,
+)
+from easy_rag.knowledge_bases import (
+    MAX_KB_PROFILES,
+    load_knowledge_base_registry,
+    parse_registry_from_form,
+    registry_from_settings,
+    save_knowledge_base_registry,
 )
 from easy_rag.logger_config import LOG_FILE, setup_logging
 from easy_rag.rag_engine import EasyRAG
@@ -38,6 +46,7 @@ FORM_FIELDS = [
     "EMBEDDING_API_KEY",
     "EMBEDDING_BASE_URL",
     "CHAT_MODEL",
+    "CHAT_THINKING_PROMPT",
     "EMBEDDING_PROVIDER",
     "EMBEDDING_MODEL",
     "LOCAL_EMBEDDING_MODEL",
@@ -70,6 +79,7 @@ FORM_FIELDS = [
     "API_PATH_PREFIX",
     "API_BIND_HOST",
     "API_BIND_PORT",
+    "RAG_API_KEY",
 ]
 
 NUMBER_FIELDS = {
@@ -100,6 +110,7 @@ MODEL_PAGE_FIELDS = {
     "OPENAI_API_KEY",
     "OPENAI_BASE_URL",
     "CHAT_MODEL",
+    "CHAT_THINKING_PROMPT",
     "EMBEDDING_PROVIDER",
     "EMBEDDING_API_KEY",
     "EMBEDDING_BASE_URL",
@@ -143,6 +154,7 @@ API_PAGE_FIELDS = {
     "API_PATH_PREFIX",
     "API_BIND_HOST",
     "API_BIND_PORT",
+    "RAG_API_KEY",
 }
 
 
@@ -155,7 +167,10 @@ app.logger.setLevel(logger.level)
 
 def _get_disk_form_values() -> dict[str, str]:
     values = read_env_values()
-    return {key: values.get(key, DEFAULT_ENV_VALUES.get(key, "")) for key in FORM_FIELDS}
+    result = {key: values.get(key, DEFAULT_ENV_VALUES.get(key, "")) for key in FORM_FIELDS}
+    if result.get("CHAT_THINKING_PROMPT"):
+        result["CHAT_THINKING_PROMPT"] = decode_prompt_text(result["CHAT_THINKING_PROMPT"])
+    return result
 
 
 def _load_form_values() -> dict[str, str]:
@@ -234,6 +249,29 @@ def _build_rag_from_values(values: dict[str, str]) -> tuple[EasyRAG | None, str 
         return None, str(exc)
 
 
+def _kb_profiles_for_template(values: dict[str, str]) -> list[Any]:
+    try:
+        settings = settings_from_env_values(values)
+    except Exception:
+        settings = settings_from_env_values(read_env_values())
+    registry = load_knowledge_base_registry(settings)
+    profiles = list(registry.bases)
+    if not profiles:
+        profiles = registry_from_settings(settings).bases
+    while len(profiles) < MAX_KB_PROFILES:
+        defaults = registry_from_settings(settings).bases
+        profiles.append(defaults[len(profiles) % len(defaults)])
+    return profiles[:MAX_KB_PROFILES]
+
+
+def _maybe_save_kb_registry(form_data: Any, values: dict[str, str]) -> None:
+    if str(form_data.get("CURRENT_PAGE", "")).strip() != "rag":
+        return
+    settings = settings_from_env_values(values)
+    registry = parse_registry_from_form(form_data, settings)
+    save_knowledge_base_registry(registry)
+
+
 def _format_preview_error(exc: Exception, timer: StageTimer) -> str:
     if isinstance(exc, ValueError):
         message = str(exc)
@@ -299,6 +337,12 @@ def _build_context(
     eval_options = list_eval_datasets()
     default_eval_file = eval_options[0]["path"] if eval_options else "tests/eval/homework_sop_test_cases.json"
 
+    try:
+        kb_settings = settings_from_env_values(values)
+    except Exception:
+        kb_settings = settings_from_env_values(read_env_values())
+    kb_registry = load_knowledge_base_registry(kb_settings)
+
     return {
         "form_values": values,
         "message": message,
@@ -333,6 +377,9 @@ def _build_context(
         "eval_api_base_url": eval_api_base_url or default_api_base_url(),
         "eval_report": eval_report,
         "eval_summary": eval_report.get("summary") if eval_report else None,
+        "kb_registry": kb_registry,
+        "kb_profiles": _kb_profiles_for_template(values),
+        "kb_profile_slots": list(range(1, MAX_KB_PROFILES + 1)),
     }
 
 
@@ -382,6 +429,7 @@ def save_config() -> str:
     values = _persist_form_draft(request.form)
     try:
         save_env_values(values)
+        _maybe_save_kb_registry(request.form, values)
         logger.info("配置已保存到 .env")
         context = _build_context(values, message="配置已保存到 .env。")
     except Exception as exc:
@@ -505,15 +553,33 @@ def preview_mysql_table() -> str:
 def build_index() -> str:
     values = _persist_form_draft(request.form)
     save_env_values(values)
+    try:
+        _maybe_save_kb_registry(request.form, values)
+    except Exception as exc:
+        return render_template("rag.html", **_build_context(values, error=f"多知识库配置无效：{exc}"))
+
     rag_instance, error = _build_rag_from_values(values)
     if error or rag_instance is None:
         return render_template("rag.html", **_build_context(values, error=error or "配置无法解析。"))
 
     reset_index = request.form.get("RESET_INDEX") in {"true", "on", "1"}
+    settings = settings_from_env_values(values)
+    registry = load_knowledge_base_registry(settings)
 
     try:
-        logger.info("开始构建索引: reset=%s knowledge_dir=%s", reset_index, rag_instance.settings.knowledge_dir)
-        summary = rag_instance.build_index(reset=reset_index)
+        if registry.enabled and registry.active_profiles():
+            logger.info(
+                "开始构建多知识库索引: profiles=%s knowledge_dir=%s",
+                [profile.id for profile in registry.active_profiles()],
+                rag_instance.settings.knowledge_dir,
+            )
+            summary = rag_instance.build_multi_knowledge_bases(
+                registry.active_profiles(),
+                reset=reset_index,
+            )
+        else:
+            logger.info("开始构建索引: reset=%s knowledge_dir=%s", reset_index, rag_instance.settings.knowledge_dir)
+            summary = rag_instance.build_index(reset=reset_index)
         logger.info("索引构建完成: summary=%s", summary)
         return render_template(
             "rag.html",

@@ -1451,3 +1451,279 @@ RuntimeError: 向量库为空
 2026-06-16 18:18:52,692 | INFO | easy_rag | 开始执行 RAG 问答: question=RAG 是什么 mode=classic
 2026-06-16 18:18:52,692 | INFO | easy_rag | 当前检索模式: vector
 2026-06-16 18:18:52,701 | INFO | easy_rag | RAG 问答完成: question=RAG 是什么 references=['sample.md']
+2026-06-16 21:26:46,886 | INFO | easy_rag | API_STAGE_START | api_rag_chat | started_at=2026-06-16T21:26:46
+2026-06-16 21:26:46,886 | INFO | easy_rag | API_STAGE_END | api_rag_chat | started_at=2026-06-16T21:26:46 | ended_at=2026-06-16T21:26:46 | duration_ms=0.66
+2026-06-16 21:26:46,887 | INFO | easy_rag | API_RAG_TIMING_SUMMARY | {'total_ms': 0.66, 'chain_text': 'api_rag_chat(0.66ms)', 'stages': [{'name': 'api_rag_chat', 'started_at': '2026-06-16T21:26:46', 'ended_at': '2026-06-16T21:26:46', 'duration_ms': 0.66}]}
+2026-06-16 21:26:46,921 | INFO | easy_rag | API_STAGE_START | api_rag_chat | started_at=2026-06-16T21:26:46
+2026-06-16 21:26:46,922 | INFO | easy_rag | API_STAGE_END | api_rag_chat | started_at=2026-06-16T21:26:46 | ended_at=2026-06-16T21:26:46 | duration_ms=0.29
+2026-06-16 21:26:46,922 | INFO | easy_rag | API_RAG_TIMING_SUMMARY | {'total_ms': 0.29, 'chain_text': 'api_rag_chat(0.29ms)', 'stages': [{'name': 'api_rag_chat', 'started_at': '2026-06-16T21:26:46', 'ended_at': '2026-06-16T21:26:46', 'duration_ms': 0.29}]}
+2026-06-16 21:26:46,957 | INFO | easy_rag | API_STAGE_START | api_rag_chat | started_at=2026-06-16T21:26:46
+2026-06-16 21:26:46,957 | INFO | easy_rag | API_STAGE_END | api_rag_chat | started_at=2026-06-16T21:26:46 | ended_at=2026-06-16T21:26:46 | duration_ms=0.26
+2026-06-16 21:26:46,957 | INFO | easy_rag | API_RAG_TIMING_SUMMARY | {'total_ms': 0.26, 'chain_text': 'api_rag_chat(0.26ms)', 'stages': [{'name': 'api_rag_chat', 'started_at': '2026-06-16T21:26:46', 'ended_at': '2026-06-16T21:26:46', 'duration_ms': 0.26}]}
+2026-06-16 21:26:46,991 | INFO | easy_rag | API_STAGE_START | api_rag_chat | started_at=2026-06-16T21:26:46
+2026-06-16 21:26:46,991 | ERROR | easy_rag | RAG API 调用失败
+Traceback (most recent call last):
+  File "D:\git_program\easy rag\src\easy_rag\api\server.py", line 138, in rag_chat
+    result = rag.answer(payload.question, timer=timer)
+  File "C:\Users\EDY\anaconda3\Lib\unittest\mock.py", line 1169, in __call__
+    return self._mock_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\EDY\anaconda3\Lib\unittest\mock.py", line 1173, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\EDY\anaconda3\Lib\unittest\mock.py", line 1228, in _execute_mock_call
+    raise effect
+RuntimeError: 向量库为空
+2026-06-16 21:26:46,996 | INFO | easy_rag | API_STAGE_END | api_rag_chat | started_at=2026-06-16T21:26:46 | ended_at=2026-06-16T21:26:46 | duration_ms=4.96
+2026-06-16 21:26:47,023 | INFO | easy_rag | EasyRAG 实例已就绪: embedding=remote retrieval=vector collection=easy-rag
+2026-06-16 21:26:47,068 | INFO | easy_rag | EasyRAG 实例已就绪: embedding=remote retrieval=vector collection=easy-rag
+2026-06-16 21:26:47,087 | INFO | easy_rag | 检测到配置变更，刷新 EasyRAG 实例
+2026-06-16 21:26:47,096 | INFO | easy_rag | EasyRAG 实例已就绪: embedding=remote retrieval=vector collection=easy-rag
+2026-06-16 21:26:47,222 | INFO | easy_rag | API_STAGE_START | api_rag_chat | started_at=2026-06-16T21:26:47
+2026-06-16 21:26:47,222 | INFO | easy_rag | API_STAGE_END | api_rag_chat | started_at=2026-06-16T21:26:47 | ended_at=2026-06-16T21:26:47 | duration_ms=0.28
+2026-06-16 21:26:47,222 | INFO | easy_rag | API_RAG_TIMING_SUMMARY | {'total_ms': 0.28, 'chain_text': 'api_rag_chat(0.28ms)', 'stages': [{'name': 'api_rag_chat', 'started_at': '2026-06-16T21:26:47', 'ended_at': '2026-06-16T21:26:47', 'duration_ms': 0.28}]}
+2026-06-16 21:26:47,261 | INFO | easy_rag | API_STAGE_START | api_rag_chat | started_at=2026-06-16T21:26:47
+2026-06-16 21:26:47,261 | INFO | easy_rag | API_STAGE_END | api_rag_chat | started_at=2026-06-16T21:26:47 | ended_at=2026-06-16T21:26:47 | duration_ms=0.26
+2026-06-16 21:26:47,261 | INFO | easy_rag | API_RAG_TIMING_SUMMARY | {'total_ms': 0.26, 'chain_text': 'api_rag_chat(0.26ms)', 'stages': [{'name': 'api_rag_chat', 'started_at': '2026-06-16T21:26:47', 'ended_at': '2026-06-16T21:26:47', 'duration_ms': 0.26}]}
+2026-06-16 21:27:03,183 | INFO | easy_rag | API_STAGE_START | api_rag_chat | started_at=2026-06-16T21:27:03
+2026-06-16 21:27:03,183 | INFO | easy_rag | API_STAGE_END | api_rag_chat | started_at=2026-06-16T21:27:03 | ended_at=2026-06-16T21:27:03 | duration_ms=0.53
+2026-06-16 21:27:03,183 | INFO | easy_rag | API_RAG_TIMING_SUMMARY | {'total_ms': 0.53, 'chain_text': 'api_rag_chat(0.53ms)', 'stages': [{'name': 'api_rag_chat', 'started_at': '2026-06-16T21:27:03', 'ended_at': '2026-06-16T21:27:03', 'duration_ms': 0.53}]}
+2026-06-16 21:27:03,217 | INFO | easy_rag | API_STAGE_START | api_rag_chat | started_at=2026-06-16T21:27:03
+2026-06-16 21:27:03,217 | INFO | easy_rag | API_STAGE_END | api_rag_chat | started_at=2026-06-16T21:27:03 | ended_at=2026-06-16T21:27:03 | duration_ms=0.29
+2026-06-16 21:27:03,218 | INFO | easy_rag | API_RAG_TIMING_SUMMARY | {'total_ms': 0.29, 'chain_text': 'api_rag_chat(0.29ms)', 'stages': [{'name': 'api_rag_chat', 'started_at': '2026-06-16T21:27:03', 'ended_at': '2026-06-16T21:27:03', 'duration_ms': 0.29}]}
+2026-06-16 21:27:03,253 | INFO | easy_rag | API_STAGE_START | api_rag_chat | started_at=2026-06-16T21:27:03
+2026-06-16 21:27:03,254 | INFO | easy_rag | API_STAGE_END | api_rag_chat | started_at=2026-06-16T21:27:03 | ended_at=2026-06-16T21:27:03 | duration_ms=0.25
+2026-06-16 21:27:03,254 | INFO | easy_rag | API_RAG_TIMING_SUMMARY | {'total_ms': 0.25, 'chain_text': 'api_rag_chat(0.25ms)', 'stages': [{'name': 'api_rag_chat', 'started_at': '2026-06-16T21:27:03', 'ended_at': '2026-06-16T21:27:03', 'duration_ms': 0.25}]}
+2026-06-16 21:27:03,288 | INFO | easy_rag | API_STAGE_START | api_rag_chat | started_at=2026-06-16T21:27:03
+2026-06-16 21:27:03,288 | ERROR | easy_rag | RAG API 调用失败
+Traceback (most recent call last):
+  File "D:\git_program\easy rag\src\easy_rag\api\server.py", line 138, in rag_chat
+    result = rag.answer(payload.question, timer=timer)
+  File "C:\Users\EDY\anaconda3\Lib\unittest\mock.py", line 1169, in __call__
+    return self._mock_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\EDY\anaconda3\Lib\unittest\mock.py", line 1173, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\EDY\anaconda3\Lib\unittest\mock.py", line 1228, in _execute_mock_call
+    raise effect
+RuntimeError: 向量库为空
+2026-06-16 21:27:03,301 | INFO | easy_rag | API_STAGE_END | api_rag_chat | started_at=2026-06-16T21:27:03 | ended_at=2026-06-16T21:27:03 | duration_ms=13.02
+2026-06-16 21:27:03,329 | INFO | easy_rag | EasyRAG 实例已就绪: embedding=remote retrieval=vector collection=easy-rag
+2026-06-16 21:27:03,361 | INFO | easy_rag | EasyRAG 实例已就绪: embedding=remote retrieval=vector collection=easy-rag
+2026-06-16 21:27:03,376 | INFO | easy_rag | 检测到配置变更，刷新 EasyRAG 实例
+2026-06-16 21:27:03,383 | INFO | easy_rag | EasyRAG 实例已就绪: embedding=remote retrieval=vector collection=easy-rag
+2026-06-16 21:27:03,501 | INFO | easy_rag | API_STAGE_START | api_rag_chat | started_at=2026-06-16T21:27:03
+2026-06-16 21:27:03,501 | INFO | easy_rag | API_STAGE_END | api_rag_chat | started_at=2026-06-16T21:27:03 | ended_at=2026-06-16T21:27:03 | duration_ms=0.31
+2026-06-16 21:27:03,501 | INFO | easy_rag | API_RAG_TIMING_SUMMARY | {'total_ms': 0.31, 'chain_text': 'api_rag_chat(0.31ms)', 'stages': [{'name': 'api_rag_chat', 'started_at': '2026-06-16T21:27:03', 'ended_at': '2026-06-16T21:27:03', 'duration_ms': 0.31}]}
+2026-06-16 21:27:03,540 | INFO | easy_rag | API_STAGE_START | api_rag_chat | started_at=2026-06-16T21:27:03
+2026-06-16 21:27:03,540 | INFO | easy_rag | API_STAGE_END | api_rag_chat | started_at=2026-06-16T21:27:03 | ended_at=2026-06-16T21:27:03 | duration_ms=0.27
+2026-06-16 21:27:03,540 | INFO | easy_rag | API_RAG_TIMING_SUMMARY | {'total_ms': 0.27, 'chain_text': 'api_rag_chat(0.27ms)', 'stages': [{'name': 'api_rag_chat', 'started_at': '2026-06-16T21:27:03', 'ended_at': '2026-06-16T21:27:03', 'duration_ms': 0.27}]}
+2026-06-16 21:27:03,887 | INFO | easy_rag | 配置已保存到 .env
+2026-06-16 21:27:03,936 | INFO | easy_rag | 知识库文件预览完成: count=1 dir=C:\Users\EDY\AppData\Local\Temp\pytest-of-EDY\pytest-35\test_preview_files_lists_markd0\knowledge
+2026-06-16 21:27:04,017 | INFO | easy_rag | 配置已保存到 .env
+2026-06-16 21:27:04,732 | INFO | easy_rag | 开始批量评测: cases=tests\eval\homework_sop_test_cases.json limit=2 api=http://127.0.0.1:8000
+2026-06-16 21:27:04,938 | INFO | easy_rag | 开始读取文档并构建索引: chunk_strategy=fixed embedding_provider=remote batch_size=32
+2026-06-16 21:27:05,365 | INFO | easy_rag | 索引构建写入完成: documents=1 chunks=1
+2026-06-16 21:27:05,372 | INFO | easy_rag | 开始读取文档并构建索引: chunk_strategy=fixed embedding_provider=remote batch_size=32
+2026-06-16 21:27:05,524 | INFO | easy_rag | 索引构建写入完成: documents=1 chunks=1
+2026-06-16 21:27:05,529 | INFO | easy_rag | 开始读取文档并构建索引: chunk_strategy=fixed embedding_provider=remote batch_size=32
+2026-06-16 21:27:05,534 | INFO | easy_rag | 开始读取文档并构建索引: chunk_strategy=fixed embedding_provider=remote batch_size=32
+2026-06-16 21:27:05,658 | INFO | easy_rag | 索引构建写入完成: documents=1 chunks=1
+2026-06-16 21:27:05,658 | INFO | easy_rag | 当前检索模式: vector
+2026-06-16 21:27:05,673 | INFO | easy_rag | 开始读取文档并构建索引: chunk_strategy=fixed embedding_provider=remote batch_size=32
+2026-06-16 21:27:05,827 | INFO | easy_rag | 索引构建写入完成: documents=1 chunks=1
+2026-06-16 21:27:05,827 | INFO | easy_rag | 当前检索模式: keyword
+2026-06-16 21:27:05,837 | INFO | easy_rag | 开始读取文档并构建索引: chunk_strategy=fixed embedding_provider=remote batch_size=32
+2026-06-16 21:27:05,974 | INFO | easy_rag | 索引构建写入完成: documents=1 chunks=1
+2026-06-16 21:27:05,974 | INFO | easy_rag | 当前检索模式: rerank
+2026-06-16 21:27:05,984 | INFO | easy_rag | 开始读取文档并构建索引: chunk_strategy=fixed embedding_provider=remote batch_size=32
+2026-06-16 21:27:06,116 | INFO | easy_rag | 索引构建写入完成: documents=1 chunks=1
+2026-06-16 21:27:06,116 | INFO | easy_rag | 当前检索模式: rrf
+2026-06-16 21:27:06,131 | INFO | easy_rag | 开始执行 RAG 问答: question=测试问题
+2026-06-16 21:27:06,131 | INFO | easy_rag | 当前检索模式: vector
+2026-06-16 21:27:06,239 | INFO | easy_rag | 开始读取文档并构建索引: chunk_strategy=fixed embedding_provider=remote batch_size=32
+2026-06-16 21:27:06,361 | INFO | easy_rag | 索引构建写入完成: documents=1 chunks=1
+2026-06-16 21:27:06,362 | INFO | easy_rag | 开始执行 RAG 问答: question=RAG 是什么
+2026-06-16 21:27:06,362 | INFO | easy_rag | 当前检索模式: vector
+2026-06-16 21:27:06,368 | INFO | easy_rag | RAG 问答完成: question=RAG 是什么 references=['sample.md']
+2026-06-17 15:51:04,809 | INFO | easy_rag | API_STAGE_START | api_rag_chat | started_at=2026-06-17T15:51:04
+2026-06-17 15:51:04,810 | INFO | easy_rag | API_STAGE_END | api_rag_chat | started_at=2026-06-17T15:51:04 | ended_at=2026-06-17T15:51:04 | duration_ms=1.09
+2026-06-17 15:51:04,810 | INFO | easy_rag | API_RAG_TIMING_SUMMARY | {'total_ms': 1.09, 'chain_text': 'api_rag_chat(1.09ms)', 'stages': [{'name': 'api_rag_chat', 'started_at': '2026-06-17T15:51:04', 'ended_at': '2026-06-17T15:51:04', 'duration_ms': 1.09}]}
+2026-06-17 15:51:04,861 | INFO | easy_rag | API_STAGE_START | api_rag_chat | started_at=2026-06-17T15:51:04
+2026-06-17 15:51:04,862 | INFO | easy_rag | API_STAGE_END | api_rag_chat | started_at=2026-06-17T15:51:04 | ended_at=2026-06-17T15:51:04 | duration_ms=0.38
+2026-06-17 15:51:04,862 | INFO | easy_rag | API_RAG_TIMING_SUMMARY | {'total_ms': 0.38, 'chain_text': 'api_rag_chat(0.38ms)', 'stages': [{'name': 'api_rag_chat', 'started_at': '2026-06-17T15:51:04', 'ended_at': '2026-06-17T15:51:04', 'duration_ms': 0.38}]}
+2026-06-17 15:51:04,908 | INFO | easy_rag | API_STAGE_START | api_rag_chat | started_at=2026-06-17T15:51:04
+2026-06-17 15:51:04,909 | INFO | easy_rag | API_STAGE_END | api_rag_chat | started_at=2026-06-17T15:51:04 | ended_at=2026-06-17T15:51:04 | duration_ms=0.35
+2026-06-17 15:51:04,909 | INFO | easy_rag | API_RAG_TIMING_SUMMARY | {'total_ms': 0.35, 'chain_text': 'api_rag_chat(0.35ms)', 'stages': [{'name': 'api_rag_chat', 'started_at': '2026-06-17T15:51:04', 'ended_at': '2026-06-17T15:51:04', 'duration_ms': 0.35}]}
+2026-06-17 15:51:04,964 | INFO | easy_rag | API_STAGE_START | api_rag_chat | started_at=2026-06-17T15:51:04
+2026-06-17 15:51:04,964 | ERROR | easy_rag | RAG API 调用失败
+Traceback (most recent call last):
+  File "D:\git_program\easy rag\src\easy_rag\api\server.py", line 146, in rag_chat
+    result = rag.answer(payload.question, timer=timer)
+  File "C:\Users\EDY\anaconda3\Lib\unittest\mock.py", line 1169, in __call__
+    return self._mock_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\EDY\anaconda3\Lib\unittest\mock.py", line 1173, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\EDY\anaconda3\Lib\unittest\mock.py", line 1228, in _execute_mock_call
+    raise effect
+RuntimeError: 向量库为空
+2026-06-17 15:51:04,976 | INFO | easy_rag | API_STAGE_END | api_rag_chat | started_at=2026-06-17T15:51:04 | ended_at=2026-06-17T15:51:04 | duration_ms=12.55
+2026-06-17 15:51:05,021 | INFO | easy_rag | EasyRAG 实例已就绪: embedding=remote retrieval=vector collection=easy-rag
+2026-06-17 15:51:05,092 | INFO | easy_rag | EasyRAG 实例已就绪: embedding=remote retrieval=vector collection=easy-rag
+2026-06-17 15:51:05,119 | INFO | easy_rag | 检测到配置变更，刷新 EasyRAG 实例
+2026-06-17 15:51:05,131 | INFO | easy_rag | EasyRAG 实例已就绪: embedding=remote retrieval=vector collection=easy-rag
+2026-06-17 15:51:05,292 | INFO | easy_rag | API_STAGE_START | api_rag_chat | started_at=2026-06-17T15:51:05
+2026-06-17 15:51:05,293 | INFO | easy_rag | API_STAGE_END | api_rag_chat | started_at=2026-06-17T15:51:05 | ended_at=2026-06-17T15:51:05 | duration_ms=0.41
+2026-06-17 15:51:05,293 | INFO | easy_rag | API_RAG_TIMING_SUMMARY | {'total_ms': 0.41, 'chain_text': 'api_rag_chat(0.41ms)', 'stages': [{'name': 'api_rag_chat', 'started_at': '2026-06-17T15:51:05', 'ended_at': '2026-06-17T15:51:05', 'duration_ms': 0.41}]}
+2026-06-17 15:51:05,348 | INFO | easy_rag | API_STAGE_START | api_rag_chat | started_at=2026-06-17T15:51:05
+2026-06-17 15:51:05,348 | INFO | easy_rag | API_STAGE_END | api_rag_chat | started_at=2026-06-17T15:51:05 | ended_at=2026-06-17T15:51:05 | duration_ms=0.41
+2026-06-17 15:51:05,348 | INFO | easy_rag | API_RAG_TIMING_SUMMARY | {'total_ms': 0.41, 'chain_text': 'api_rag_chat(0.41ms)', 'stages': [{'name': 'api_rag_chat', 'started_at': '2026-06-17T15:51:05', 'ended_at': '2026-06-17T15:51:05', 'duration_ms': 0.41}]}
+2026-06-17 15:51:05,906 | INFO | easy_rag | 配置已保存到 .env
+2026-06-17 15:51:06,043 | INFO | easy_rag | 知识库文件预览完成: count=1 dir=C:\Users\EDY\AppData\Local\Temp\pytest-of-EDY\pytest-36\test_preview_files_lists_markd0\knowledge
+2026-06-17 15:51:06,185 | INFO | easy_rag | 配置已保存到 .env
+2026-06-17 15:51:07,475 | INFO | easy_rag | 开始批量评测: cases=tests\eval\homework_sop_test_cases.json limit=2 api=http://127.0.0.1:8000
+2026-06-17 15:51:07,674 | INFO | easy_rag | 多知识库并行检索完成: profiles=['kb-a', 'kb-b'] merged_hits=2
+2026-06-17 15:51:07,685 | INFO | easy_rag | 开始读取文档并构建索引: collection=easy-rag-fixed chunk_strategy=fixed embedding_provider=remote batch_size=32
+2026-06-17 15:51:10,776 | INFO | easy_rag | 开始读取文档并构建索引: collection=easy-rag chunk_strategy=fixed embedding_provider=remote batch_size=32
+2026-06-17 15:51:11,035 | INFO | easy_rag | 索引构建写入完成: collection=easy-rag documents=1 chunks=1
+2026-06-17 15:51:11,044 | INFO | easy_rag | 开始读取文档并构建索引: collection=easy-rag chunk_strategy=fixed embedding_provider=remote batch_size=32
+2026-06-17 15:51:11,230 | INFO | easy_rag | 索引构建写入完成: collection=easy-rag documents=1 chunks=1
+2026-06-17 15:51:11,237 | INFO | easy_rag | 开始读取文档并构建索引: collection=easy-rag chunk_strategy=fixed embedding_provider=remote batch_size=32
+2026-06-17 15:51:11,245 | INFO | easy_rag | 开始读取文档并构建索引: collection=easy-rag chunk_strategy=fixed embedding_provider=remote batch_size=32
+2026-06-17 15:51:11,440 | INFO | easy_rag | 索引构建写入完成: collection=easy-rag documents=1 chunks=1
+2026-06-17 15:51:11,440 | INFO | easy_rag | 当前检索模式: vector
+2026-06-17 15:51:11,468 | INFO | easy_rag | 开始读取文档并构建索引: collection=easy-rag chunk_strategy=fixed embedding_provider=remote batch_size=32
+2026-06-17 15:51:11,665 | INFO | easy_rag | 索引构建写入完成: collection=easy-rag documents=1 chunks=1
+2026-06-17 15:51:11,666 | INFO | easy_rag | 当前检索模式: keyword
+2026-06-17 15:51:11,680 | INFO | easy_rag | 开始读取文档并构建索引: collection=easy-rag chunk_strategy=fixed embedding_provider=remote batch_size=32
+2026-06-17 15:51:11,852 | INFO | easy_rag | 索引构建写入完成: collection=easy-rag documents=1 chunks=1
+2026-06-17 15:51:11,852 | INFO | easy_rag | 当前检索模式: rerank
+2026-06-17 15:51:11,866 | INFO | easy_rag | 开始读取文档并构建索引: collection=easy-rag chunk_strategy=fixed embedding_provider=remote batch_size=32
+2026-06-17 15:51:12,048 | INFO | easy_rag | 索引构建写入完成: collection=easy-rag documents=1 chunks=1
+2026-06-17 15:51:12,048 | INFO | easy_rag | 当前检索模式: rrf
+2026-06-17 15:51:12,069 | INFO | easy_rag | 开始执行 RAG 问答: question=测试问题
+2026-06-17 15:51:12,070 | INFO | easy_rag | 当前检索模式: vector
+2026-06-17 15:51:12,196 | INFO | easy_rag | 开始读取文档并构建索引: collection=easy-rag chunk_strategy=fixed embedding_provider=remote batch_size=32
+2026-06-17 15:51:12,363 | INFO | easy_rag | 索引构建写入完成: collection=easy-rag documents=1 chunks=1
+2026-06-17 15:51:12,365 | INFO | easy_rag | 开始执行 RAG 问答: question=RAG 是什么
+2026-06-17 15:51:12,365 | INFO | easy_rag | 当前检索模式: vector
+2026-06-17 15:51:12,370 | INFO | easy_rag | RAG 问答完成: question=RAG 是什么 references=['sample.md']
+2026-06-17 15:51:34,268 | INFO | easy_rag | 多知识库并行检索完成: profiles=['kb-a', 'kb-b'] merged_hits=2
+2026-06-17 15:51:34,274 | INFO | easy_rag | 开始读取文档并构建索引: collection=easy-rag-fixed chunk_strategy=fixed embedding_provider=remote batch_size=32
+2026-06-17 15:51:34,602 | INFO | easy_rag | 索引构建写入完成: collection=easy-rag-fixed documents=1 chunks=1
+2026-06-17 15:51:34,603 | INFO | easy_rag | 开始读取文档并构建索引: collection=easy-rag-recursive chunk_strategy=recursive embedding_provider=remote batch_size=32
+2026-06-17 15:51:34,675 | INFO | easy_rag | 索引构建写入完成: collection=easy-rag-recursive documents=1 chunks=1
+2026-06-17 15:51:34,846 | INFO | easy_rag | 开始读取文档并构建索引: collection=easy-rag chunk_strategy=fixed embedding_provider=remote batch_size=32
+2026-06-17 15:51:34,992 | INFO | easy_rag | 索引构建写入完成: collection=easy-rag documents=1 chunks=1
+2026-06-17 15:51:34,997 | INFO | easy_rag | 开始读取文档并构建索引: collection=easy-rag chunk_strategy=fixed embedding_provider=remote batch_size=32
+2026-06-17 15:51:35,140 | INFO | easy_rag | 索引构建写入完成: collection=easy-rag documents=1 chunks=1
+2026-06-17 15:51:35,147 | INFO | easy_rag | 开始读取文档并构建索引: collection=easy-rag chunk_strategy=fixed embedding_provider=remote batch_size=32
+2026-06-17 15:51:35,153 | INFO | easy_rag | 开始读取文档并构建索引: collection=easy-rag chunk_strategy=fixed embedding_provider=remote batch_size=32
+2026-06-17 15:51:35,301 | INFO | easy_rag | 索引构建写入完成: collection=easy-rag documents=1 chunks=1
+2026-06-17 15:51:35,302 | INFO | easy_rag | 当前检索模式: vector
+2026-06-17 15:51:35,313 | INFO | easy_rag | 开始读取文档并构建索引: collection=easy-rag chunk_strategy=fixed embedding_provider=remote batch_size=32
+2026-06-17 15:51:35,460 | INFO | easy_rag | 索引构建写入完成: collection=easy-rag documents=1 chunks=1
+2026-06-17 15:51:35,460 | INFO | easy_rag | 当前检索模式: keyword
+2026-06-17 15:51:35,470 | INFO | easy_rag | 开始读取文档并构建索引: collection=easy-rag chunk_strategy=fixed embedding_provider=remote batch_size=32
+2026-06-17 15:51:35,612 | INFO | easy_rag | 索引构建写入完成: collection=easy-rag documents=1 chunks=1
+2026-06-17 15:51:35,613 | INFO | easy_rag | 当前检索模式: rerank
+2026-06-17 15:51:35,624 | INFO | easy_rag | 开始读取文档并构建索引: collection=easy-rag chunk_strategy=fixed embedding_provider=remote batch_size=32
+2026-06-17 15:51:35,767 | INFO | easy_rag | 索引构建写入完成: collection=easy-rag documents=1 chunks=1
+2026-06-17 15:51:35,767 | INFO | easy_rag | 当前检索模式: rrf
+2026-06-17 15:51:35,785 | INFO | easy_rag | 开始执行 RAG 问答: question=测试问题
+2026-06-17 15:51:35,785 | INFO | easy_rag | 当前检索模式: vector
+2026-06-17 15:51:35,893 | INFO | easy_rag | 开始读取文档并构建索引: collection=easy-rag chunk_strategy=fixed embedding_provider=remote batch_size=32
+2026-06-17 15:51:36,070 | INFO | easy_rag | 索引构建写入完成: collection=easy-rag documents=1 chunks=1
+2026-06-17 15:51:36,072 | INFO | easy_rag | 开始执行 RAG 问答: question=RAG 是什么
+2026-06-17 15:51:36,072 | INFO | easy_rag | 当前检索模式: vector
+2026-06-17 15:51:36,078 | INFO | easy_rag | RAG 问答完成: question=RAG 是什么 references=['sample.md']
+2026-06-17 15:51:36,255 | INFO | easy_rag | API_STAGE_START | api_rag_chat | started_at=2026-06-17T15:51:36
+2026-06-17 15:51:36,256 | INFO | easy_rag | API_STAGE_END | api_rag_chat | started_at=2026-06-17T15:51:36 | ended_at=2026-06-17T15:51:36 | duration_ms=0.38
+2026-06-17 15:51:36,256 | INFO | easy_rag | API_RAG_TIMING_SUMMARY | {'total_ms': 0.38, 'chain_text': 'api_rag_chat(0.38ms)', 'stages': [{'name': 'api_rag_chat', 'started_at': '2026-06-17T15:51:36', 'ended_at': '2026-06-17T15:51:36', 'duration_ms': 0.38}]}
+2026-06-17 15:51:36,312 | INFO | easy_rag | API_STAGE_START | api_rag_chat | started_at=2026-06-17T15:51:36
+2026-06-17 15:51:36,312 | INFO | easy_rag | API_STAGE_END | api_rag_chat | started_at=2026-06-17T15:51:36 | ended_at=2026-06-17T15:51:36 | duration_ms=0.49
+2026-06-17 15:51:36,313 | INFO | easy_rag | API_RAG_TIMING_SUMMARY | {'total_ms': 0.49, 'chain_text': 'api_rag_chat(0.49ms)', 'stages': [{'name': 'api_rag_chat', 'started_at': '2026-06-17T15:51:36', 'ended_at': '2026-06-17T15:51:36', 'duration_ms': 0.49}]}
+2026-06-17 15:51:36,366 | INFO | easy_rag | API_STAGE_START | api_rag_chat | started_at=2026-06-17T15:51:36
+2026-06-17 15:51:36,366 | INFO | easy_rag | API_STAGE_END | api_rag_chat | started_at=2026-06-17T15:51:36 | ended_at=2026-06-17T15:51:36 | duration_ms=0.36
+2026-06-17 15:51:36,366 | INFO | easy_rag | API_RAG_TIMING_SUMMARY | {'total_ms': 0.36, 'chain_text': 'api_rag_chat(0.36ms)', 'stages': [{'name': 'api_rag_chat', 'started_at': '2026-06-17T15:51:36', 'ended_at': '2026-06-17T15:51:36', 'duration_ms': 0.36}]}
+2026-06-17 15:51:36,423 | INFO | easy_rag | API_STAGE_START | api_rag_chat | started_at=2026-06-17T15:51:36
+2026-06-17 15:51:36,424 | ERROR | easy_rag | RAG API 调用失败
+Traceback (most recent call last):
+  File "D:\git_program\easy rag\src\easy_rag\api\server.py", line 146, in rag_chat
+    result = rag.answer(payload.question, timer=timer)
+  File "C:\Users\EDY\anaconda3\Lib\unittest\mock.py", line 1169, in __call__
+    return self._mock_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\EDY\anaconda3\Lib\unittest\mock.py", line 1173, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\EDY\anaconda3\Lib\unittest\mock.py", line 1228, in _execute_mock_call
+    raise effect
+RuntimeError: 向量库为空
+2026-06-17 15:51:36,438 | INFO | easy_rag | API_STAGE_END | api_rag_chat | started_at=2026-06-17T15:51:36 | ended_at=2026-06-17T15:51:36 | duration_ms=14.72
+2026-06-17 15:51:36,483 | INFO | easy_rag | EasyRAG 实例已就绪: embedding=remote retrieval=vector collection=easy-rag
+2026-06-17 15:51:36,534 | INFO | easy_rag | EasyRAG 实例已就绪: embedding=remote retrieval=vector collection=easy-rag
+2026-06-17 15:51:36,557 | INFO | easy_rag | 检测到配置变更，刷新 EasyRAG 实例
+2026-06-17 15:51:36,567 | INFO | easy_rag | EasyRAG 实例已就绪: embedding=remote retrieval=vector collection=easy-rag
+2026-06-17 15:51:36,726 | INFO | easy_rag | API_STAGE_START | api_rag_chat | started_at=2026-06-17T15:51:36
+2026-06-17 15:51:36,726 | INFO | easy_rag | API_STAGE_END | api_rag_chat | started_at=2026-06-17T15:51:36 | ended_at=2026-06-17T15:51:36 | duration_ms=0.38
+2026-06-17 15:51:36,726 | INFO | easy_rag | API_RAG_TIMING_SUMMARY | {'total_ms': 0.38, 'chain_text': 'api_rag_chat(0.38ms)', 'stages': [{'name': 'api_rag_chat', 'started_at': '2026-06-17T15:51:36', 'ended_at': '2026-06-17T15:51:36', 'duration_ms': 0.38}]}
+2026-06-17 15:51:36,773 | INFO | easy_rag | API_STAGE_START | api_rag_chat | started_at=2026-06-17T15:51:36
+2026-06-17 15:51:36,774 | INFO | easy_rag | API_STAGE_END | api_rag_chat | started_at=2026-06-17T15:51:36 | ended_at=2026-06-17T15:51:36 | duration_ms=0.38
+2026-06-17 15:51:36,774 | INFO | easy_rag | API_RAG_TIMING_SUMMARY | {'total_ms': 0.38, 'chain_text': 'api_rag_chat(0.38ms)', 'stages': [{'name': 'api_rag_chat', 'started_at': '2026-06-17T15:51:36', 'ended_at': '2026-06-17T15:51:36', 'duration_ms': 0.38}]}
+2026-06-17 16:05:08,864 | INFO | easy_rag | 多知识库并行检索完成: profiles=['kb-a', 'kb-b'] merged_hits=2
+2026-06-17 16:05:08,873 | INFO | easy_rag | 开始读取文档并构建索引: collection=easy-rag-fixed chunk_strategy=fixed embedding_provider=remote batch_size=32
+2026-06-17 16:05:09,565 | INFO | easy_rag | 索引构建写入完成: collection=easy-rag-fixed documents=1 chunks=1
+2026-06-17 16:05:09,566 | INFO | easy_rag | 开始读取文档并构建索引: collection=easy-rag-recursive chunk_strategy=recursive embedding_provider=remote batch_size=32
+2026-06-17 16:05:09,656 | INFO | easy_rag | 索引构建写入完成: collection=easy-rag-recursive documents=1 chunks=1
+2026-06-17 16:42:13,012 | INFO | easy_rag | 开始读取文档并构建索引: collection=easy-rag chunk_strategy=fixed embedding_provider=remote batch_size=32
+2026-06-17 16:42:13,747 | INFO | easy_rag | 索引构建写入完成: collection=easy-rag documents=1 chunks=1
+2026-06-17 16:42:13,759 | INFO | easy_rag | 开始读取文档并构建索引: collection=easy-rag chunk_strategy=fixed embedding_provider=remote batch_size=32
+2026-06-17 16:42:14,027 | INFO | easy_rag | 索引构建写入完成: collection=easy-rag documents=1 chunks=1
+2026-06-17 16:42:14,038 | INFO | easy_rag | 开始读取文档并构建索引: collection=easy-rag chunk_strategy=fixed embedding_provider=remote batch_size=32
+2026-06-17 16:42:14,052 | INFO | easy_rag | 开始读取文档并构建索引: collection=easy-rag chunk_strategy=fixed embedding_provider=remote batch_size=32
+2026-06-17 16:42:14,293 | INFO | easy_rag | 索引构建写入完成: collection=easy-rag documents=1 chunks=1
+2026-06-17 16:42:14,294 | INFO | easy_rag | 当前检索模式: vector
+2026-06-17 16:42:14,327 | INFO | easy_rag | 开始读取文档并构建索引: collection=easy-rag chunk_strategy=fixed embedding_provider=remote batch_size=32
+2026-06-17 16:42:14,577 | INFO | easy_rag | 索引构建写入完成: collection=easy-rag documents=1 chunks=1
+2026-06-17 16:42:14,577 | INFO | easy_rag | 当前检索模式: keyword
+2026-06-17 16:42:14,601 | INFO | easy_rag | 开始读取文档并构建索引: collection=easy-rag chunk_strategy=fixed embedding_provider=remote batch_size=32
+2026-06-17 16:42:14,855 | INFO | easy_rag | 索引构建写入完成: collection=easy-rag documents=1 chunks=1
+2026-06-17 16:42:14,855 | INFO | easy_rag | 当前检索模式: rerank
+2026-06-17 16:42:14,877 | INFO | easy_rag | 开始读取文档并构建索引: collection=easy-rag chunk_strategy=fixed embedding_provider=remote batch_size=32
+2026-06-17 16:42:15,128 | INFO | easy_rag | 索引构建写入完成: collection=easy-rag documents=1 chunks=1
+2026-06-17 16:42:15,128 | INFO | easy_rag | 当前检索模式: rrf
+2026-06-17 16:42:15,164 | INFO | easy_rag | 开始执行 RAG 问答: question=测试问题
+2026-06-17 16:42:15,167 | INFO | easy_rag | 当前检索模式: vector
+2026-06-17 16:42:15,358 | INFO | easy_rag | 开始读取文档并构建索引: collection=easy-rag chunk_strategy=fixed embedding_provider=remote batch_size=32
+2026-06-17 16:42:15,595 | INFO | easy_rag | 索引构建写入完成: collection=easy-rag documents=1 chunks=1
+2026-06-17 16:42:15,598 | INFO | easy_rag | 开始执行 RAG 问答: question=RAG 是什么
+2026-06-17 16:42:15,598 | INFO | easy_rag | 当前检索模式: vector
+2026-06-17 16:42:15,611 | INFO | easy_rag | RAG 问答完成: question=RAG 是什么 references=['sample.md']
+2026-06-17 19:57:57,342 | INFO | easy_rag | 开始读取文档并构建索引: collection=easy-rag chunk_strategy=fixed embedding_provider=remote batch_size=32
+2026-06-17 19:57:57,892 | INFO | easy_rag | 索引构建写入完成: collection=easy-rag documents=1 chunks=1
+2026-06-17 19:57:57,901 | INFO | easy_rag | 开始读取文档并构建索引: collection=easy-rag chunk_strategy=fixed embedding_provider=remote batch_size=32
+2026-06-17 19:57:58,085 | INFO | easy_rag | 索引构建写入完成: collection=easy-rag documents=1 chunks=1
+2026-06-17 19:57:58,094 | INFO | easy_rag | 开始读取文档并构建索引: collection=easy-rag chunk_strategy=fixed embedding_provider=remote batch_size=32
+2026-06-17 19:57:58,103 | INFO | easy_rag | 开始读取文档并构建索引: collection=easy-rag chunk_strategy=fixed embedding_provider=remote batch_size=32
+2026-06-17 19:57:58,277 | INFO | easy_rag | 索引构建写入完成: collection=easy-rag documents=1 chunks=1
+2026-06-17 19:57:58,277 | INFO | easy_rag | 当前检索模式: vector
+2026-06-17 19:57:58,301 | INFO | easy_rag | 开始读取文档并构建索引: collection=easy-rag chunk_strategy=fixed embedding_provider=remote batch_size=32
+2026-06-17 19:57:58,479 | INFO | easy_rag | 索引构建写入完成: collection=easy-rag documents=1 chunks=1
+2026-06-17 19:57:58,479 | INFO | easy_rag | 当前检索模式: keyword
+2026-06-17 19:57:58,497 | INFO | easy_rag | 开始读取文档并构建索引: collection=easy-rag chunk_strategy=fixed embedding_provider=remote batch_size=32
+2026-06-17 19:57:58,673 | INFO | easy_rag | 索引构建写入完成: collection=easy-rag documents=1 chunks=1
+2026-06-17 19:57:58,673 | INFO | easy_rag | 当前检索模式: rerank
+2026-06-17 19:57:58,689 | INFO | easy_rag | 开始读取文档并构建索引: collection=easy-rag chunk_strategy=fixed embedding_provider=remote batch_size=32
+2026-06-17 19:57:58,877 | INFO | easy_rag | 索引构建写入完成: collection=easy-rag documents=1 chunks=1
+2026-06-17 19:57:58,878 | INFO | easy_rag | 当前检索模式: rrf
+2026-06-17 19:57:58,904 | INFO | easy_rag | 开始执行 RAG 问答: question=测试问题
+2026-06-17 19:57:58,905 | INFO | easy_rag | 当前检索模式: vector
+2026-06-17 19:57:59,050 | INFO | easy_rag | 开始读取文档并构建索引: collection=easy-rag chunk_strategy=fixed embedding_provider=remote batch_size=32
+2026-06-17 19:57:59,226 | INFO | easy_rag | 索引构建写入完成: collection=easy-rag documents=1 chunks=1
+2026-06-17 19:57:59,228 | INFO | easy_rag | 开始执行 RAG 问答: question=RAG 是什么
+2026-06-17 19:57:59,228 | INFO | easy_rag | 当前检索模式: vector
+2026-06-17 19:57:59,236 | INFO | easy_rag | RAG 问答完成: question=RAG 是什么 references=['sample.md']

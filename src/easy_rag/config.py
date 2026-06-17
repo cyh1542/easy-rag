@@ -17,6 +17,7 @@ DEFAULT_ENV_VALUES: dict[str, str] = {
     "EMBEDDING_API_KEY": "",
     "EMBEDDING_BASE_URL": "https://api.openai.com/v1",
     "CHAT_MODEL": "gpt-4o-mini",
+    "CHAT_THINKING_PROMPT": "",
     "EMBEDDING_PROVIDER": "remote",
     "EMBEDDING_MODEL": "text-embedding-3-small",
     "LOCAL_EMBEDDING_MODEL": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
@@ -49,6 +50,7 @@ DEFAULT_ENV_VALUES: dict[str, str] = {
     "API_PATH_PREFIX": "",
     "API_BIND_HOST": "0.0.0.0",
     "API_BIND_PORT": "8000",
+    "RAG_API_KEY": "",
 }
 
 ENV_ORDER = [
@@ -57,6 +59,7 @@ ENV_ORDER = [
     "EMBEDDING_API_KEY",
     "EMBEDDING_BASE_URL",
     "CHAT_MODEL",
+    "CHAT_THINKING_PROMPT",
     "EMBEDDING_PROVIDER",
     "EMBEDDING_MODEL",
     "LOCAL_EMBEDDING_MODEL",
@@ -89,6 +92,7 @@ ENV_ORDER = [
     "API_PATH_PREFIX",
     "API_BIND_HOST",
     "API_BIND_PORT",
+    "RAG_API_KEY",
 ]
 
 
@@ -98,6 +102,33 @@ def _stringify(value: object) -> str:
     if isinstance(value, bool):
         return "true" if value else "false"
     return str(value)
+
+
+def encode_prompt_text(text: str) -> str:
+    return text.replace("\r\n", "\n").replace("\n", "\\n").strip()
+
+
+def decode_prompt_text(text: str) -> str:
+    if not text:
+        return ""
+    if "\\n" in text:
+        return text.replace("\\n", "\n").strip()
+    return text.strip()
+
+
+def _serialize_env_value(key: str, value: object) -> str:
+    text = _stringify(value)
+    if key == "CHAT_THINKING_PROMPT":
+        if not text.strip():
+            return ""
+        escaped = (
+            text.replace("\r\n", "\n")
+            .replace("\\", "\\\\")
+            .replace('"', '\\"')
+            .replace("\n", "\\n")
+        )
+        return f'"{escaped}"'
+    return text
 
 
 def _int_value(values: Mapping[str, str], name: str, default: int) -> int:
@@ -203,6 +234,7 @@ class Settings:
     embedding_api_key: str
     embedding_base_url: str
     chat_model: str
+    chat_thinking_prompt: str
     embedding_provider: str
     embedding_model: str
     local_embedding_model: str
@@ -235,13 +267,14 @@ class Settings:
     api_path_prefix: str
     api_bind_host: str
     api_bind_port: int
+    rag_api_key: str
 
 
 def save_env_values(values: Mapping[str, object]) -> None:
     serialized = DEFAULT_ENV_VALUES.copy()
     for key in ENV_ORDER:
         if key in values:
-            serialized[key] = _stringify(values[key])
+            serialized[key] = _serialize_env_value(key, values[key])
 
     lines = [f"{key}={serialized[key]}" for key in ENV_ORDER]
     ENV_FILE.write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -284,16 +317,6 @@ def read_env_values() -> dict[str, str]:
     return values
 
 
-def save_env_values(values: Mapping[str, object]) -> None:
-    serialized = DEFAULT_ENV_VALUES.copy()
-    for key in ENV_ORDER:
-        if key in values:
-            serialized[key] = _stringify(values[key])
-
-    lines = [f"{key}={serialized[key]}" for key in ENV_ORDER]
-    ENV_FILE.write_text("\n".join(lines) + "\n", encoding="utf-8")
-
-
 def settings_from_env_values(values: Mapping[str, str]) -> Settings:
     return Settings(
         api_key=values.get("OPENAI_API_KEY", "").strip(),
@@ -304,6 +327,9 @@ def settings_from_env_values(values: Mapping[str, str]) -> Settings:
             DEFAULT_ENV_VALUES["EMBEDDING_BASE_URL"],
         ).strip().rstrip("/"),
         chat_model=values.get("CHAT_MODEL", DEFAULT_ENV_VALUES["CHAT_MODEL"]).strip(),
+        chat_thinking_prompt=decode_prompt_text(
+            values.get("CHAT_THINKING_PROMPT", DEFAULT_ENV_VALUES["CHAT_THINKING_PROMPT"])
+        ),
         embedding_provider=values.get("EMBEDDING_PROVIDER", DEFAULT_ENV_VALUES["EMBEDDING_PROVIDER"]).strip().lower(),
         embedding_model=values.get("EMBEDDING_MODEL", DEFAULT_ENV_VALUES["EMBEDDING_MODEL"]).strip(),
         local_embedding_model=values.get(
@@ -371,6 +397,7 @@ def settings_from_env_values(values: Mapping[str, str]) -> Settings:
         ),
         api_bind_host=values.get("API_BIND_HOST", DEFAULT_ENV_VALUES["API_BIND_HOST"]).strip(),
         api_bind_port=_int_value(values, "API_BIND_PORT", int(DEFAULT_ENV_VALUES["API_BIND_PORT"])),
+        rag_api_key=values.get("RAG_API_KEY", DEFAULT_ENV_VALUES["RAG_API_KEY"]).strip(),
     )
 
 

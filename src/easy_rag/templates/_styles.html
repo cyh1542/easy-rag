@@ -293,6 +293,67 @@
         border-bottom: 0;
     }
 
+    .kb-table-wrap {
+        overflow-x: auto;
+        margin-top: 12px;
+        border-radius: 16px;
+        border: 1px solid rgba(22, 48, 43, 0.08);
+        background: rgba(255, 255, 255, 0.85);
+    }
+
+    .kb-table {
+        width: 100%;
+        min-width: 920px;
+        border-collapse: collapse;
+        margin-top: 0;
+        background: transparent;
+        border-radius: 0;
+        overflow: visible;
+    }
+
+    .kb-table th,
+    .kb-table td {
+        padding: 10px 12px;
+        vertical-align: middle;
+    }
+
+    .kb-table .col-enable {
+        width: 56px;
+        text-align: center;
+    }
+
+    .kb-table .col-name {
+        min-width: 120px;
+    }
+
+    .kb-table .col-collection {
+        min-width: 150px;
+    }
+
+    .kb-table .col-strategy {
+        min-width: 120px;
+    }
+
+    .kb-table .col-num {
+        min-width: 84px;
+    }
+
+    .kb-table .col-threshold {
+        min-width: 108px;
+    }
+
+    .kb-table input[type="text"],
+    .kb-table input[type="number"],
+    .kb-table select {
+        width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+    }
+
+    .kb-table .col-threshold input[type="number"] {
+        min-width: 88px;
+    }
+
     .nav-grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
