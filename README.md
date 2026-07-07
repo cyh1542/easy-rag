@@ -27,13 +27,10 @@
 ### 安装
 
 ```bash
-git clone https://github.com/your-org/easy-rag.git
+git clone https://github.com/cyh1542/easy-rag.git
 cd easy-rag
 
-python -m venv .venv
-# Windows: .venv\Scripts\activate
-# Linux/macOS: source .venv/bin/activate
-
+conda create -n easy-rag python=3.10 -y
 pip install -e ".[dev]"
 ```
 
