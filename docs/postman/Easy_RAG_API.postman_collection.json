@@ -1,0 +1,350 @@
+{
+  "info": {
+    "_postman_id": "easy-rag-api-v1",
+    "name": "Easy RAG API",
+    "description": "Easy RAG 对外问答 API 集合。\n\n前置条件：\n1. 启动服务：uvicorn api_server:api --host 0.0.0.0 --port 8000\n2. 已完成 .env 配置与索引构建（python ingest.py 或 Flask 页面建索引）\n\n文档：docs/API.md",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:8000",
+      "type": "string"
+    },
+    {
+      "key": "ragApiKey",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            },
+            "description": "健康检查。返回服务状态、聊天模型、Embedding 模式、检索策略与知识库路径。\n\n成功：HTTP 200，status 为 ok。"
+          },
+          "response": [
+            {
+              "name": "200 OK - 服务正常",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/health",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["health"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"ok\",\n  \"chat_model\": \"gpt-4o-mini\",\n  \"embedding_provider\": \"remote\",\n  \"retrieval_method\": \"vector\",\n  \"knowledge_dir\": \"D:\\\\git_program\\\\easy rag\\\\data\\\\knowledge\"\n}"
+            }
+          ]
+        }
+      ],
+      "description": "服务健康检查相关接口"
+    },
+    {
+      "name": "RAG Chat",
+      "item": [
+        {
+          "name": "RAG Chat - 含上下文",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "X-API-Key",
+                "value": "{{ragApiKey}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"RAG 的核心流程是什么？\",\n  \"include_contexts\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/rag/chat",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "rag", "chat"]
+            },
+            "description": "RAG 问答接口。检索知识库并调用大模型生成答案，同时返回命中上下文与耗时信息。\n\n必填字段：question\n可选字段：include_contexts（默认 true）"
+          },
+          "response": [
+            {
+              "name": "200 OK - 问答成功",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"question\": \"RAG 的核心流程是什么？\",\n  \"include_contexts\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/rag/chat",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "v1", "rag", "chat"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"question\": \"RAG 的核心流程是什么？\",\n  \"answer\": \"RAG 的核心流程包括：将文档切分、向量化并存入向量库，用户提问时检索相关片段，再将检索结果与问题一并发送给大语言模型生成答案。\",\n  \"references\": [\n    \"sample_rag_intro.md\"\n  ],\n  \"contexts\": [\n    {\n      \"content\": \"一个典型的 RAG 系统通常包含下面几个步骤：\\n1. 先把本地知识库文档切分成多个片段。\\n2. 再使用 embedding 模型把这些片段转换成向量。\",\n      \"source\": \"sample_rag_intro.md\",\n      \"path\": \"data/knowledge/sample_rag_intro.md\",\n      \"distance\": 0.234521\n    }\n  ],\n  \"timing\": {\n    \"total_ms\": 1523.45,\n    \"chain_text\": \"api_rag_chat(1520.1ms) -> vector_retrieve(45.2ms) -> build_prompt_context(1.5ms) -> llm_completion(1473.8ms)\",\n    \"stages\": [\n      {\n        \"name\": \"vector_retrieve\",\n        \"started_at\": \"2026-06-13T17:30:01\",\n        \"ended_at\": \"2026-06-13T17:30:01\",\n        \"duration_ms\": 45.2\n      },\n      {\n        \"name\": \"llm_completion\",\n        \"started_at\": \"2026-06-13T17:30:01\",\n        \"ended_at\": \"2026-06-13T17:30:03\",\n        \"duration_ms\": 1473.8\n      }\n    ]\n  }\n}"
+            },
+            {
+              "name": "500 - 向量库为空",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"question\": \"测试问题\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/rag/chat",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "v1", "rag", "chat"]
+                }
+              },
+              "status": "Internal Server Error",
+              "code": 500,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"detail\": \"当前向量库为空，请先执行 ingest.py 建立索引。\"\n}"
+            },
+            {
+              "name": "422 - 缺少 question 字段",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"include_contexts\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/rag/chat",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "v1", "rag", "chat"]
+                }
+              },
+              "status": "Unprocessable Entity",
+              "code": 422,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"detail\": [\n    {\n      \"type\": \"missing\",\n      \"loc\": [\"body\", \"question\"],\n      \"msg\": \"Field required\",\n      \"input\": {\n        \"include_contexts\": true\n      }\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "RAG Chat - 仅返回答案",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "X-API-Key",
+                "value": "{{ragApiKey}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"这份知识库主要介绍了什么？\",\n  \"include_contexts\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/rag/chat",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "rag", "chat"]
+            },
+            "description": "与「含上下文」相同，但 include_contexts 设为 false，响应中 contexts 字段为 null，适合仅需答案的场景。"
+          },
+          "response": [
+            {
+              "name": "200 OK - 无上下文",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"question\": \"这份知识库主要介绍了什么？\",\n  \"include_contexts\": false\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/rag/chat",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "v1", "rag", "chat"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"question\": \"这份知识库主要介绍了什么？\",\n  \"answer\": \"这份知识库主要介绍了 RAG（检索增强生成）的基本概念与典型工作流程。\",\n  \"references\": [\n    \"sample_rag_intro.md\"\n  ],\n  \"contexts\": null,\n  \"timing\": {\n    \"total_ms\": 1200.0,\n    \"chain_text\": \"api_rag_chat(1198.0ms) -> vector_retrieve(30.0ms) -> build_prompt_context(1.0ms) -> llm_completion(1170.0ms)\",\n    \"stages\": []\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "RAG Chat - 示例问题（知识库简介）",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "X-API-Key",
+                "value": "{{ragApiKey}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"RAG 的优点是什么？\",\n  \"include_contexts\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/rag/chat",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "rag", "chat"]
+            },
+            "description": "使用示例知识库 sample_rag_intro.md 中的内容进行提问的示例请求。"
+          },
+          "response": []
+        }
+      ],
+      "description": "RAG 问答相关接口"
+    }
+  ]
+}

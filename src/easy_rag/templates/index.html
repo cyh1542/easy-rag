@@ -1,0 +1,489 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Easy RAG Flask Console</title>
+    <style>
+        :root {
+            --bg-top: #f6f1e9;
+            --bg-bottom: #eef3f1;
+            --card: rgba(255, 255, 255, 0.82);
+            --text: #16302b;
+            --muted: #607774;
+            --accent: #1f6f63;
+            --accent-soft: #dcefe9;
+            --border: rgba(22, 48, 43, 0.10);
+            --danger: #a93a32;
+            --danger-soft: #f9e1de;
+            --success: #246b4f;
+            --success-soft: #def2e8;
+            --shadow: 0 18px 50px rgba(38, 57, 54, 0.08);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top left, rgba(255, 214, 153, 0.28), transparent 28%),
+                radial-gradient(circle at right 20%, rgba(58, 170, 169, 0.16), transparent 22%),
+                linear-gradient(180deg, var(--bg-top) 0%, #fbfaf7 38%, var(--bg-bottom) 100%);
+        }
+
+        .page {
+            width: min(1180px, calc(100% - 32px));
+            margin: 28px auto 44px;
+        }
+
+        .hero,
+        .card,
+        .metric {
+            background: var(--card);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            border-radius: 24px;
+        }
+
+        .hero {
+            padding: 24px 28px;
+            margin-bottom: 18px;
+        }
+
+        h1, h2, h3 {
+            margin: 0 0 12px;
+            letter-spacing: 0.02em;
+        }
+
+        p {
+            margin: 0;
+            line-height: 1.6;
+            color: var(--muted);
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 14px;
+            margin-bottom: 18px;
+        }
+
+        .metric {
+            padding: 16px 18px;
+            min-height: 112px;
+        }
+
+        .metric .label {
+            color: var(--muted);
+            font-size: 0.92rem;
+            margin-bottom: 8px;
+        }
+
+        .metric .value {
+            font-size: 1.18rem;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+
+        .metric .hint {
+            font-size: 0.84rem;
+            color: #768985;
+        }
+
+        .flash {
+            padding: 14px 18px;
+            border-radius: 18px;
+            margin-bottom: 14px;
+            border: 1px solid transparent;
+        }
+
+        .flash.success {
+            background: var(--success-soft);
+            border-color: rgba(36, 107, 79, 0.18);
+            color: var(--success);
+        }
+
+        .flash.error {
+            background: var(--danger-soft);
+            border-color: rgba(169, 58, 50, 0.18);
+            color: var(--danger);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1.18fr 0.82fr;
+            gap: 18px;
+        }
+
+        .left-stack {
+            display: grid;
+            gap: 18px;
+        }
+
+        .card {
+            padding: 20px 22px;
+        }
+
+        .section-title {
+            margin-bottom: 14px;
+        }
+
+        .section-subtitle {
+            margin-bottom: 14px;
+            color: var(--muted);
+            font-size: 0.96rem;
+        }
+
+        .section-divider {
+            height: 1px;
+            background: rgba(22, 48, 43, 0.08);
+            margin: 18px 0;
+        }
+
+        .context-card {
+            border-radius: 16px;
+            padding: 14px 16px;
+            background: rgba(255, 255, 255, 0.88);
+            border: 1px solid rgba(22, 48, 43, 0.08);
+            margin-top: 12px;
+        }
+
+        .context-meta {
+            font-size: 0.84rem;
+            color: var(--muted);
+            margin-bottom: 8px;
+        }
+
+        .fields {
+            display: grid;
+            gap: 14px;
+        }
+
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+
+        .three-col {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 14px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.92rem;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .help {
+            margin-top: 6px;
+            font-size: 0.82rem;
+            color: #768985;
+        }
+
+        input[type="text"],
+        input[type="password"],
+        input[type="number"],
+        select,
+        textarea {
+            width: 100%;
+            border: 1px solid rgba(31, 111, 99, 0.16);
+            background: rgba(255, 255, 255, 0.88);
+            border-radius: 14px;
+            padding: 12px 14px;
+            font-size: 0.95rem;
+            color: var(--text);
+            outline: none;
+        }
+
+        textarea {
+            min-height: 150px;
+            resize: vertical;
+        }
+
+        input[type="checkbox"] {
+            transform: scale(1.15);
+            margin-right: 8px;
+        }
+
+        .checkbox-line {
+            display: flex;
+            align-items: center;
+            min-height: 44px;
+            font-weight: 600;
+        }
+
+        .button-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        button {
+            border: 0;
+            border-radius: 14px;
+            padding: 12px 18px;
+            font-size: 0.94rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.16s ease, opacity 0.16s ease;
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+            opacity: 0.96;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: var(--accent-soft);
+            color: var(--text);
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 0.82rem;
+            color: var(--accent);
+            background: rgba(31, 111, 99, 0.10);
+            margin-bottom: 10px;
+        }
+
+        .result-box {
+            border-radius: 16px;
+            padding: 14px 16px;
+            background: rgba(247, 249, 248, 0.92);
+            border: 1px solid rgba(22, 48, 43, 0.08);
+            font-family: Consolas, "Courier New", monospace;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+            background: rgba(255, 255, 255, 0.85);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 12px 14px;
+            border-bottom: 1px solid rgba(22, 48, 43, 0.08);
+            vertical-align: top;
+            font-size: 0.92rem;
+        }
+
+        th {
+            background: rgba(31, 111, 99, 0.08);
+        }
+
+        tr:last-child td {
+            border-bottom: 0;
+        }
+
+        @media (max-width: 980px) {
+            .metrics,
+            .grid,
+            .two-col,
+            .three-col {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <section class="hero">
+            <h1>Easy RAG Flask 控制台</h1>
+            <p>这里可以统一管理知识库路径、MySQL 连接、API Key、Embedding 模式，并直接执行索引构建。</p>
+        </section>
+
+        <section class="metrics">
+            <div class="metric">
+                <div class="label">知识库路径</div>
+                <div class="value">{{ form_values["KNOWLEDGE_DIR"] }}</div>
+                <div class="hint">支持相对路径或绝对路径</div>
+            </div>
+            <div class="metric">
+                <div class="label">Embedding 模式</div>
+                <div class="value">{{ embedding_mode_text }}</div>
+                <div class="hint">远程 / 本地 / Hugging Face</div>
+            </div>
+            <div class="metric">
+                <div class="label">MySQL 状态</div>
+                <div class="value">{{ mysql_status_text }}</div>
+                <div class="hint">可按表读取或执行 SQL</div>
+            </div>
+            <div class="metric">
+                <div class="label">集合名称</div>
+                <div class="value">{{ form_values["COLLECTION_NAME"] }}</div>
+                <div class="hint">向量库集合 ID</div>
+            </div>
+        </section>
+
+        {% if message %}
+        <div class="flash success">{{ message }}</div>
+        {% endif %}
+        {% if error %}
+        <div class="flash error">{{ error }}</div>
+        {% endif %}
+        {% if settings_error %}
+        <div class="flash error">当前配置存在待修正项：{{ settings_error }}</div>
+        {% endif %}
+
+        <div class="grid">
+            {% import "_form_fields.html" as forms %}
+            <div class="left-stack">
+                <section class="card">
+                    <div class="badge">模型设置</div>
+                    <h2 class="section-title">模型相关设置</h2>
+                    <div class="section-subtitle">配置 API、聊天模型和 embedding 模式。</div>
+                    <form method="post" action="{{ url_for('save_config') }}" class="fields">
+                        {{ forms.model_fields(form_values, provider_options) }}
+                        <div class="button-row">
+                            <button class="btn-primary" type="submit">保存模型配置</button>
+                            <button class="btn-secondary" type="submit" formaction="{{ url_for('reload_config') }}">重载磁盘配置</button>
+                        </div>
+                    </form>
+                </section>
+
+                <section class="card">
+                    <div class="badge">MySQL 设置</div>
+                    <h2 class="section-title">MySQL 相关设置</h2>
+                    <div class="section-subtitle">配置数据库连接、表和 SQL 查询。</div>
+                    <form method="post" action="{{ url_for('test_mysql') }}" class="fields">
+                        {{ forms.mysql_fields(form_values) }}
+                        <div class="button-row">
+                            <button class="btn-primary" type="submit">测试 MySQL 连接</button>
+                            <button class="btn-secondary" type="submit" formaction="{{ url_for('save_config') }}">保存 MySQL 配置</button>
+                        </div>
+                    </form>
+                </section>
+
+                <section class="card">
+                    <div class="badge">RAG 设置</div>
+                    <h2 class="section-title">RAG 相关设置</h2>
+                    <div class="section-subtitle">当前预览目录：{{ knowledge_preview_dir }}</div>
+                    <form method="post" action="{{ url_for('build_index') }}" class="fields">
+                        {{ forms.rag_fields(form_values) }}
+                        <div class="button-row">
+                            <button class="btn-secondary" type="submit" formaction="{{ url_for('preview_files') }}">预览知识库文件</button>
+                            <button class="btn-secondary" type="submit" formaction="{{ url_for('save_config') }}">保存 RAG 配置</button>
+                            <button class="btn-primary" type="submit">执行建索引</button>
+                        </div>
+                    </form>
+                </section>
+
+                <section class="card">
+                    <div class="badge">模型效果预览</div>
+                    <h2 class="section-title">模型效果预览</h2>
+                    <div class="section-subtitle">输入问题后，会基于当前配置和现有索引直接预览回答效果。</div>
+                    <form method="post" action="{{ url_for('preview_answer') }}" class="fields">
+                        {{ forms.model_fields(form_values, provider_options) }}
+                        {{ forms.rag_fields(form_values) }}
+                        {{ forms.preview_fields(preview_question) }}
+                        <div class="button-row">
+                            <button class="btn-primary" type="submit">预览模型效果</button>
+                        </div>
+                    </form>
+                </section>
+            </div>
+
+            <div>
+                <section class="card">
+                    <div class="badge">结果面板</div>
+                    <h2 class="section-title">执行结果与数据预览</h2>
+                    <div class="section-subtitle">所有动作都基于左侧当前表单内容执行，避免重复填写同样的配置。</div>
+
+                    {% if file_rows %}
+                    <h3>知识库文件</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>文件名</th>
+                                <th>类型</th>
+                                <th>路径</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in file_rows %}
+                            <tr>
+                                <td>{{ row.name }}</td>
+                                <td>{{ row.suffix }}</td>
+                                <td>{{ row.path }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% endif %}
+
+                    {% if mysql_info %}
+                    {% if file_rows %}
+                    <div class="section-divider"></div>
+                    {% endif %}
+                    <h3>MySQL 测试结果</h3>
+                    <div class="result-box">数据库：{{ mysql_info["database"] }}
+版本：{{ mysql_info["version"] }}
+表数量：{{ mysql_info["table_count"] }}
+示例表：{{ mysql_info["sample_tables"]|join(", ") }}</div>
+                    {% endif %}
+
+                    {% if build_summary %}
+                    {% if file_rows or mysql_info %}
+                    <div class="section-divider"></div>
+                    {% endif %}
+                    <h3>索引构建结果</h3>
+                    <div class="result-box">{{ build_summary | tojson(indent=2) }}</div>
+                    {% endif %}
+
+                    {% if preview_result %}
+                    {% if file_rows or mysql_info or build_summary %}
+                    <div class="section-divider"></div>
+                    {% endif %}
+                    <h3>模型效果预览</h3>
+                    <div class="result-box">问题：{{ preview_question }}
+
+回答：
+{{ preview_result["answer"] }}</div>
+
+                    {% if preview_result["references"] %}
+                    <div class="section-subtitle" style="margin-top: 12px;">参考来源：{{ preview_result["references"] | join("，") }}</div>
+                    {% endif %}
+
+                    {% if preview_result["contexts"] %}
+                    <h3 style="margin-top: 18px;">命中上下文</h3>
+                    {% for item in preview_result["contexts"] %}
+                    <div class="context-card">
+                        <div class="context-meta">来源：{{ item["source"] }}{% if item["distance"] is not none %} | 距离：{{ item["distance"] }}{% endif %}</div>
+                        <div>{{ item["content"] }}</div>
+                    </div>
+                    {% endfor %}
+                    {% endif %}
+                    {% endif %}
+
+                    {% if not file_rows and not mysql_info and not build_summary and not preview_result %}
+                    <div class="result-box">这里会显示知识库文件预览、MySQL 测试结果和索引构建结果。</div>
+                    {% endif %}
+                </section>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

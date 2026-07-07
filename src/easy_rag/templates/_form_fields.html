@@ -1,0 +1,351 @@
+{% macro hidden_preserve_fields(form_values, exclude=[]) -%}
+{% for key, value in form_values.items() %}
+{% if key not in exclude and key != 'CHAT_THINKING_PROMPT' %}
+<input type="hidden" name="{{ key }}" value="{{ value }}">
+{% endif %}
+{% endfor %}
+{%- endmacro %}
+
+{% macro nav_buttons(current_page='') -%}
+<button type="submit" class="nav-link btn-secondary" formaction="{{ url_for('draft_navigate') }}" name="NEXT_PAGE" value="home">返回首页</button>
+<button type="submit" class="nav-link btn-secondary" formaction="{{ url_for('draft_navigate') }}" name="NEXT_PAGE" value="model">模型设置</button>
+<button type="submit" class="nav-link btn-secondary" formaction="{{ url_for('draft_navigate') }}" name="NEXT_PAGE" value="mysql">MySQL 设置</button>
+<button type="submit" class="nav-link btn-secondary" formaction="{{ url_for('draft_navigate') }}" name="NEXT_PAGE" value="rag">RAG 设置</button>
+<button type="submit" class="nav-link btn-secondary" formaction="{{ url_for('draft_navigate') }}" name="NEXT_PAGE" value="preview">模型效果预览</button>
+<button type="submit" class="nav-link btn-secondary" formaction="{{ url_for('draft_navigate') }}" name="NEXT_PAGE" value="api_docs">FastAPI 接口</button>
+{%- endmacro %}
+
+{% macro model_fields(form_values, provider_options) -%}
+{% set provider = form_values['EMBEDDING_PROVIDER'] %}
+<div class="two-col">
+    <div>
+        <label for="OPENAI_API_KEY">OPENAI_API_KEY</label>
+        <input id="OPENAI_API_KEY" name="OPENAI_API_KEY" type="password" value="{{ form_values['OPENAI_API_KEY'] }}">
+    </div>
+    <div>
+        <label for="OPENAI_BASE_URL">OPENAI_BASE_URL</label>
+        <input id="OPENAI_BASE_URL" name="OPENAI_BASE_URL" type="text" value="{{ form_values['OPENAI_BASE_URL'] }}">
+    </div>
+</div>
+
+<div class="two-col">
+    <div>
+        <label for="CHAT_MODEL">CHAT_MODEL</label>
+        <input id="CHAT_MODEL" name="CHAT_MODEL" type="text" value="{{ form_values['CHAT_MODEL'] }}">
+    </div>
+    <div>
+        <label for="EMBEDDING_PROVIDER">EMBEDDING_PROVIDER</label>
+        <select id="EMBEDDING_PROVIDER" name="EMBEDDING_PROVIDER">
+            {% for item in provider_options %}
+            <option value="{{ item }}" {% if form_values['EMBEDDING_PROVIDER'] == item %}selected{% endif %}>
+                {% if item == "remote" %}远程接口调用{% elif item == "local" %}本地模型加载{% else %}从 Hugging Face 下载{% endif %}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+</div>
+
+<div>
+    <label for="CHAT_THINKING_PROMPT">CHAT_THINKING_PROMPT</label>
+    <textarea id="CHAT_THINKING_PROMPT" name="CHAT_THINKING_PROMPT" rows="6" placeholder="留空时使用默认系统提示词。可在此编写引导模型逐步思考、组织答案的 System Prompt。">{{ form_values['CHAT_THINKING_PROMPT'] }}</textarea>
+    <div class="help">作为聊天模型的 System Prompt，用于引导模型如何理解上下文并组织回答；保存后对预览页与 API 问答均生效。</div>
+</div>
+
+{% if provider == "remote" %}
+<div class="two-col">
+    <div>
+        <label for="EMBEDDING_API_KEY">EMBEDDING_API_KEY</label>
+        <input id="EMBEDDING_API_KEY" name="EMBEDDING_API_KEY" type="password" value="{{ form_values['EMBEDDING_API_KEY'] }}">
+        <div class="help">远程 embedding 模式使用；留空时回退到 OPENAI_API_KEY。</div>
+    </div>
+    <div>
+        <label for="EMBEDDING_BASE_URL">EMBEDDING_BASE_URL</label>
+        <input id="EMBEDDING_BASE_URL" name="EMBEDDING_BASE_URL" type="text" value="{{ form_values['EMBEDDING_BASE_URL'] }}">
+        <div class="help">仅远程 embedding 模式使用，可与聊天模型 base_url 分开配置。</div>
+    </div>
+</div>
+
+<div>
+    <label for="EMBEDDING_MODEL">EMBEDDING_MODEL</label>
+    <input id="EMBEDDING_MODEL" name="EMBEDDING_MODEL" type="text" value="{{ form_values['EMBEDDING_MODEL'] }}">
+    <div class="help">远程 embedding 时使用。</div>
+</div>
+{% elif provider == "local" %}
+<div class="two-col">
+    <div>
+        <label for="LOCAL_EMBEDDING_MODEL">LOCAL_EMBEDDING_MODEL</label>
+        <input id="LOCAL_EMBEDDING_MODEL" name="LOCAL_EMBEDDING_MODEL" type="text" value="{{ form_values['LOCAL_EMBEDDING_MODEL'] }}">
+        <div class="help">本地 embedding 模型目录；不会请求远程 embedding 接口。</div>
+    </div>
+    <div>
+        <label for="LOCAL_EMBEDDING_DEVICE">LOCAL_EMBEDDING_DEVICE</label>
+        <input id="LOCAL_EMBEDDING_DEVICE" name="LOCAL_EMBEDDING_DEVICE" type="text" value="{{ form_values['LOCAL_EMBEDDING_DEVICE'] }}">
+    </div>
+</div>
+{% else %}
+<div class="two-col">
+    <div>
+        <label for="HF_EMBEDDING_REPO_ID">HF_EMBEDDING_REPO_ID</label>
+        <input id="HF_EMBEDDING_REPO_ID" name="HF_EMBEDDING_REPO_ID" type="text" value="{{ form_values['HF_EMBEDDING_REPO_ID'] }}">
+        <div class="help">会先下载到本地缓存，再从本地加载；不会请求远程 embedding API。</div>
+    </div>
+    <div>
+        <label for="LOCAL_EMBEDDING_DEVICE">LOCAL_EMBEDDING_DEVICE</label>
+        <input id="LOCAL_EMBEDDING_DEVICE" name="LOCAL_EMBEDDING_DEVICE" type="text" value="{{ form_values['LOCAL_EMBEDDING_DEVICE'] }}">
+    </div>
+</div>
+
+<div>
+    <label for="HF_EMBEDDING_CACHE_DIR">HF_EMBEDDING_CACHE_DIR</label>
+    <input id="HF_EMBEDDING_CACHE_DIR" name="HF_EMBEDDING_CACHE_DIR" type="text" value="{{ form_values['HF_EMBEDDING_CACHE_DIR'] }}">
+</div>
+{% endif %}
+{%- endmacro %}
+
+{% macro hf_hub_fields(form_values) -%}
+<div class="section-subtitle">Hugging Face Hub 镜像</div>
+<div class="two-col">
+    <div>
+        <label for="HF_ENDPOINT">HF_ENDPOINT</label>
+        <input id="HF_ENDPOINT" name="HF_ENDPOINT" type="text" value="{{ form_values['HF_ENDPOINT'] }}" placeholder="https://hf-mirror.com">
+        <div class="help">Hub 镜像地址；留空使用官方 huggingface.co。local / huggingface 模式下载模型时生效。</div>
+    </div>
+    <div></div>
+</div>
+{%- endmacro %}
+
+{% macro mysql_fields(form_values) -%}
+<label class="checkbox-line">
+    <input type="hidden" name="MYSQL_ENABLED" value="false">
+    <input name="MYSQL_ENABLED" type="checkbox" value="true" {% if form_values['MYSQL_ENABLED'] == 'true' %}checked{% endif %}>
+    启用 MySQL 数据源
+</label>
+
+<div class="two-col">
+    <div>
+        <label for="MYSQL_HOST">MYSQL_HOST</label>
+        <input id="MYSQL_HOST" name="MYSQL_HOST" type="text" value="{{ form_values['MYSQL_HOST'] }}">
+    </div>
+    <div>
+        <label for="MYSQL_PORT">MYSQL_PORT</label>
+        <input id="MYSQL_PORT" name="MYSQL_PORT" type="number" value="{{ form_values['MYSQL_PORT'] }}">
+    </div>
+</div>
+
+<div class="two-col">
+    <div>
+        <label for="MYSQL_USER">MYSQL_USER</label>
+        <input id="MYSQL_USER" name="MYSQL_USER" type="text" value="{{ form_values['MYSQL_USER'] }}">
+    </div>
+    <div>
+        <label for="MYSQL_PASSWORD">MYSQL_PASSWORD</label>
+        <input id="MYSQL_PASSWORD" name="MYSQL_PASSWORD" type="password" value="{{ form_values['MYSQL_PASSWORD'] }}">
+    </div>
+</div>
+
+<div class="two-col">
+    <div>
+        <label for="MYSQL_DATABASE">MYSQL_DATABASE</label>
+        <input id="MYSQL_DATABASE" name="MYSQL_DATABASE" type="text" value="{{ form_values['MYSQL_DATABASE'] }}">
+    </div>
+    <div>
+        <label for="MYSQL_CHARSET">MYSQL_CHARSET</label>
+        <input id="MYSQL_CHARSET" name="MYSQL_CHARSET" type="text" value="{{ form_values['MYSQL_CHARSET'] }}">
+    </div>
+</div>
+
+<div class="two-col">
+    <div>
+        <label for="MYSQL_TABLES">MYSQL_TABLES</label>
+        <input id="MYSQL_TABLES" name="MYSQL_TABLES" type="text" value="{{ form_values['MYSQL_TABLES'] }}">
+        <div class="help">多个表用英文逗号分隔</div>
+    </div>
+    <div>
+        <label for="MYSQL_LIMIT_PER_TABLE">MYSQL_LIMIT_PER_TABLE</label>
+        <input id="MYSQL_LIMIT_PER_TABLE" name="MYSQL_LIMIT_PER_TABLE" type="number" value="{{ form_values['MYSQL_LIMIT_PER_TABLE'] }}">
+    </div>
+</div>
+
+<div>
+    <label for="MYSQL_QUERY">MYSQL_QUERY</label>
+    <textarea id="MYSQL_QUERY" name="MYSQL_QUERY">{{ form_values['MYSQL_QUERY'] }}</textarea>
+</div>
+{%- endmacro %}
+
+{% macro rag_fields(form_values) -%}
+<div class="two-col">
+    <div>
+        <label for="COLLECTION_NAME">COLLECTION_NAME</label>
+        <input id="COLLECTION_NAME" name="COLLECTION_NAME" type="text" value="{{ form_values['COLLECTION_NAME'] }}">
+    </div>
+    <div>
+        <label for="KNOWLEDGE_DIR">KNOWLEDGE_DIR</label>
+        <input id="KNOWLEDGE_DIR" name="KNOWLEDGE_DIR" type="text" value="{{ form_values['KNOWLEDGE_DIR'] }}">
+    </div>
+</div>
+
+<div class="two-col">
+    <div>
+        <label for="CHROMA_DIR">CHROMA_DIR</label>
+        <input id="CHROMA_DIR" name="CHROMA_DIR" type="text" value="{{ form_values['CHROMA_DIR'] }}">
+    </div>
+    <div></div>
+</div>
+
+<div class="two-col">
+    <div>
+        <label for="CHUNK_STRATEGY">CHUNK_STRATEGY</label>
+        <select id="CHUNK_STRATEGY" name="CHUNK_STRATEGY">
+            <option value="fixed" {% if form_values['CHUNK_STRATEGY'] == 'fixed' %}selected{% endif %}>固定大小分块</option>
+            <option value="recursive" {% if form_values['CHUNK_STRATEGY'] == 'recursive' %}selected{% endif %}>递归分块</option>
+            <option value="semantic" {% if form_values['CHUNK_STRATEGY'] == 'semantic' %}selected{% endif %}>语义分块</option>
+            <option value="structure" {% if form_values['CHUNK_STRATEGY'] == 'structure' %}selected{% endif %}>基于文档结构的分块</option>
+        </select>
+        <div class="help">选择文档切分策略；语义分块会使用 embedding 计算相邻句子相似度。</div>
+    </div>
+    <div>
+        <label for="SEMANTIC_CHUNK_THRESHOLD">SEMANTIC_CHUNK_THRESHOLD</label>
+        <input id="SEMANTIC_CHUNK_THRESHOLD" name="SEMANTIC_CHUNK_THRESHOLD" type="number" step="0.01" min="0" max="1" value="{{ form_values['SEMANTIC_CHUNK_THRESHOLD'] }}">
+        <div class="help">仅语义分块使用，相邻句子相似度高于该阈值时会合并为同一块。</div>
+    </div>
+</div>
+
+<div class="three-col">
+    <div>
+        <label for="CHUNK_SIZE">CHUNK_SIZE</label>
+        <input id="CHUNK_SIZE" name="CHUNK_SIZE" type="number" value="{{ form_values['CHUNK_SIZE'] }}">
+    </div>
+    <div>
+        <label for="CHUNK_OVERLAP">CHUNK_OVERLAP</label>
+        <input id="CHUNK_OVERLAP" name="CHUNK_OVERLAP" type="number" value="{{ form_values['CHUNK_OVERLAP'] }}">
+    </div>
+    <div>
+        <label for="TOP_K">TOP_K</label>
+        <input id="TOP_K" name="TOP_K" type="number" value="{{ form_values['TOP_K'] }}">
+    </div>
+</div>
+
+<div class="two-col">
+    <div>
+        <label for="RETRIEVAL_METHOD">RETRIEVAL_METHOD</label>
+        <select id="RETRIEVAL_METHOD" name="RETRIEVAL_METHOD">
+            <option value="keyword" {% if form_values['RETRIEVAL_METHOD'] == 'keyword' %}selected{% endif %}>关键词匹配</option>
+            <option value="vector" {% if form_values['RETRIEVAL_METHOD'] == 'vector' %}selected{% endif %}>向量相似度检索</option>
+            <option value="rerank" {% if form_values['RETRIEVAL_METHOD'] == 'rerank' %}selected{% endif %}>重排序打分</option>
+            <option value="rrf" {% if form_values['RETRIEVAL_METHOD'] == 'rrf' %}selected{% endif %}>RRF 融合检索</option>
+        </select>
+        <div class="help">选择当前 RAG 检索策略。</div>
+    </div>
+    <div>
+        <label for="RERANK_CANDIDATE_K">RERANK_CANDIDATE_K</label>
+        <input id="RERANK_CANDIDATE_K" name="RERANK_CANDIDATE_K" type="number" value="{{ form_values['RERANK_CANDIDATE_K'] }}">
+        <div class="help">仅重排序和 RRF 模式使用。</div>
+    </div>
+</div>
+
+<div class="two-col">
+    <div>
+        <label for="RRF_K">RRF_K</label>
+        <input id="RRF_K" name="RRF_K" type="number" value="{{ form_values['RRF_K'] }}">
+        <div class="help">仅 RRF 模式使用，表示排名融合时的平滑参数。</div>
+    </div>
+    <div></div>
+</div>
+
+<label class="checkbox-line">
+    <input type="checkbox" name="RESET_INDEX" checked>
+    建索引前清空旧向量库
+</label>
+{%- endmacro %}
+
+{% macro multi_kb_fields(kb_registry, kb_profiles, chunk_strategy_options) -%}
+<div class="section-subtitle">多知识库并行检索</div>
+<label class="checkbox-line">
+    <input type="hidden" name="MULTI_KB_ENABLED" value="false">
+    <input name="MULTI_KB_ENABLED" type="checkbox" value="true" {% if kb_registry.enabled %}checked{% endif %}>
+    启用多知识库：按不同切分策略分别建索引，问答时并行检索并合并结果
+</label>
+<div class="help">启用后会对下方每个已勾选的知识库执行建索引；检索阶段使用线程池并行查询各 collection，再按相似度合并取 TOP_K。</div>
+
+<div class="kb-table-wrap">
+<table class="kb-table">
+    <thead>
+        <tr>
+            <th class="col-enable">启用</th>
+            <th class="col-name">名称</th>
+            <th class="col-collection">Collection</th>
+            <th class="col-strategy">切分策略</th>
+            <th class="col-num">Size</th>
+            <th class="col-num">Overlap</th>
+            <th class="col-threshold">语义阈值</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for slot in range(1, kb_profiles|length + 1) %}
+        {% set profile = kb_profiles[slot - 1] %}
+        <tr>
+            <td class="col-enable">
+                <input type="hidden" name="KB{{ slot }}_ID" value="{{ profile.id }}">
+                <input type="hidden" name="KB{{ slot }}_ENABLED" value="false">
+                <input name="KB{{ slot }}_ENABLED" type="checkbox" value="true" {% if profile.enabled %}checked{% endif %}>
+            </td>
+            <td class="col-name"><input name="KB{{ slot }}_NAME" type="text" value="{{ profile.name }}"></td>
+            <td class="col-collection"><input name="KB{{ slot }}_COLLECTION_NAME" type="text" value="{{ profile.collection_name }}"></td>
+            <td class="col-strategy">
+                <select name="KB{{ slot }}_CHUNK_STRATEGY">
+                    {% for strategy in chunk_strategy_options %}
+                    <option value="{{ strategy }}" {% if profile.chunk_strategy == strategy %}selected{% endif %}>{{ strategy }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+            <td class="col-num"><input name="KB{{ slot }}_CHUNK_SIZE" type="number" min="1" value="{{ profile.chunk_size }}"></td>
+            <td class="col-num"><input name="KB{{ slot }}_CHUNK_OVERLAP" type="number" min="0" value="{{ profile.chunk_overlap }}"></td>
+            <td class="col-threshold"><input name="KB{{ slot }}_SEMANTIC_CHUNK_THRESHOLD" type="number" step="0.01" min="0" max="1" value="{{ profile.semantic_chunk_threshold }}"></td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+{%- endmacro %}
+
+{% macro api_fields(form_values) -%}
+<div class="two-col">
+    <div>
+        <label for="API_PUBLIC_BASE_URL">API_PUBLIC_BASE_URL</label>
+        <input id="API_PUBLIC_BASE_URL" name="API_PUBLIC_BASE_URL" type="text" value="{{ form_values['API_PUBLIC_BASE_URL'] }}">
+        <div class="help">对外展示的 API 根地址，例如 http://www.easy-rag.com；留空时使用本机地址。</div>
+    </div>
+    <div>
+        <label for="API_PATH_PREFIX">API_PATH_PREFIX</label>
+        <input id="API_PATH_PREFIX" name="API_PATH_PREFIX" type="text" value="{{ form_values['API_PATH_PREFIX'] }}">
+        <div class="help">接口路径前缀掩饰，例如 www.easy-rag.com，实际路径为 /www.easy-rag.com/health。</div>
+    </div>
+</div>
+
+<div class="two-col">
+    <div>
+        <label for="API_BIND_HOST">API_BIND_HOST</label>
+        <input id="API_BIND_HOST" name="API_BIND_HOST" type="text" value="{{ form_values['API_BIND_HOST'] }}">
+        <div class="help">FastAPI 监听地址，默认 0.0.0.0。</div>
+    </div>
+    <div>
+        <label for="API_BIND_PORT">API_BIND_PORT</label>
+        <input id="API_BIND_PORT" name="API_BIND_PORT" type="number" value="{{ form_values['API_BIND_PORT'] }}">
+        <div class="help">FastAPI 监听端口，默认 8000。</div>
+    </div>
+</div>
+
+<div>
+    <label for="RAG_API_KEY">RAG_API_KEY</label>
+    <input id="RAG_API_KEY" name="RAG_API_KEY" type="password" value="{{ form_values['RAG_API_KEY'] }}">
+    <div class="help">对外 API 访问密钥；留空表示不启用鉴权。调用 /api/v1/rag/chat 时在请求头携带 X-API-Key 或 Authorization: Bearer。</div>
+</div>
+{%- endmacro %}
+
+{% macro preview_fields(preview_question) -%}
+<div>
+    <label for="PREVIEW_QUESTION">PREVIEW_QUESTION</label>
+    <textarea id="PREVIEW_QUESTION" name="PREVIEW_QUESTION" placeholder="输入一个测试问题，例如：这份知识库主要介绍了什么？">{{ preview_question }}</textarea>
+    <div class="help">会基于当前页面配置和现有索引直接预览模型回答效果。</div>
+</div>
+{%- endmacro %}

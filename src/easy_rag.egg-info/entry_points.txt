@@ -1,0 +1,5 @@
+[console_scripts]
+easy-rag-api = easy_rag.api.server:main
+easy-rag-chat = easy_rag.cli.chat:main
+easy-rag-ingest = easy_rag.cli.ingest:main
+easy-rag-web = easy_rag.web.app:main

@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>RAG Settings</title>
+    {% include "_styles.html" %}
+</head>
+<body>
+    <div class="page">
+        {% import "_form_fields.html" as forms %}
+        <form method="post" action="{{ url_for('build_index') }}" class="fields">
+            <input type="hidden" name="CURRENT_PAGE" value="rag">
+            {{ forms.hidden_preserve_fields(form_values, rag_page_fields) }}
+            <div class="top-nav">
+                {{ forms.nav_buttons('rag') }}
+            </div>
+
+            <section class="hero">
+                <h1>RAG 相关设置</h1>
+                <p>配置知识库路径、索引参数、检索策略，并执行知识库预览或建索引。</p>
+            </section>
+
+            {% if message %}<div class="flash success">{{ message }}</div>{% endif %}
+            {% if error %}<div class="flash error">{{ error }}</div>{% endif %}
+            {% if settings_error %}<div class="flash error">当前配置存在待修正项：{{ settings_error }}</div>{% endif %}
+
+            <div class="grid">
+                <section class="card">
+                    <div class="section-subtitle">当前预览目录：{{ knowledge_preview_dir }}</div>
+                    {{ forms.rag_fields(form_values) }}
+                    {{ forms.multi_kb_fields(kb_registry, kb_profiles, chunk_strategy_options) }}
+                    <div class="button-row">
+                        <button class="btn-secondary" type="submit" formaction="{{ url_for('preview_files') }}">预览知识库文件</button>
+                        <button class="btn-secondary" type="submit" formaction="{{ url_for('save_config') }}">保存 RAG 配置</button>
+                        <button class="btn-primary" type="submit">执行建索引</button>
+                    </div>
+                </section>
+
+                <section class="card">
+                    <div class="badge">结果面板</div>
+                    <h2 class="section-title">执行结果与文件预览</h2>
+                    {% if file_rows %}
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>文件名</th>
+                                <th>类型</th>
+                                <th>路径</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in file_rows %}
+                            <tr>
+                                <td>{{ row.name }}</td>
+                                <td>{{ row.suffix }}</td>
+                                <td>{{ row.path }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% endif %}
+
+                    {% if build_summary %}
+                    {% if file_rows %}<div class="section-divider"></div>{% endif %}
+                    <div class="result-box">{{ build_summary | tojson(indent=2) }}</div>
+                    {% endif %}
+
+                    {% if not file_rows and not build_summary %}
+                    <div class="result-box">这里会显示知识库文件预览和索引构建结果。</div>
+                    {% endif %}
+                </section>
+            </div>
+        </form>
+    </div>
+</body>
+</html>

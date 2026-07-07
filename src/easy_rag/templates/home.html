@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Easy RAG Home</title>
+    {% include "_styles.html" %}
+</head>
+<body>
+    <div class="page">
+        <section class="hero">
+            <h1>Easy RAG 首页</h1>
+            <p>这里是功能导航页。你可以从这里进入模型设置、MySQL 设置、RAG 设置和模型效果预览页面。</p>
+        </section>
+
+        <section class="metrics">
+            <div class="metric">
+                <div class="label">知识库路径</div>
+                <div class="value">{{ form_values["KNOWLEDGE_DIR"] }}</div>
+                <div class="hint">支持相对路径或绝对路径</div>
+            </div>
+            <div class="metric">
+                <div class="label">Embedding 模式</div>
+                <div class="value">{{ embedding_mode_text }}</div>
+                <div class="hint">远程 / 本地 / Hugging Face</div>
+            </div>
+            <div class="metric">
+                <div class="label">MySQL 状态</div>
+                <div class="value">{{ mysql_status_text }}</div>
+                <div class="hint">可按表读取或执行 SQL</div>
+            </div>
+            <div class="metric">
+                <div class="label">切分策略</div>
+                <div class="value">{{ chunk_strategy_text }}</div>
+                <div class="hint">固定 / 递归 / 语义 / 结构</div>
+            </div>
+            <div class="metric">
+                <div class="label">日志文件</div>
+                <div class="value">app.log</div>
+                <div class="hint">{{ log_file_path }}</div>
+            </div>
+        </section>
+
+        <div class="nav-grid">
+            <section class="card nav-card">
+                <div class="badge">模型设置</div>
+                <h2 class="section-title">模型相关设置</h2>
+                <p>配置 API Key、Base URL、聊天模型、Embedding 模式，以及本地或 Hugging Face 模型参数。</p>
+                <div class="nav-actions">
+                    <a class="nav-link btn-primary" href="{{ url_for('model_page') }}">进入模型设置</a>
+                </div>
+            </section>
+
+            <section class="card nav-card">
+                <div class="badge">MySQL 设置</div>
+                <h2 class="section-title">MySQL 相关设置</h2>
+                <p>配置数据库连接、表名和 SQL 查询，并执行连接测试。</p>
+                <div class="nav-actions">
+                    <a class="nav-link btn-primary" href="{{ url_for('mysql_page') }}">进入 MySQL 设置</a>
+                </div>
+            </section>
+
+            <section class="card nav-card">
+                <div class="badge">RAG 设置</div>
+                <h2 class="section-title">RAG 相关设置</h2>
+                <p>配置知识库路径、索引参数、检索策略，并执行知识库预览或建索引。</p>
+                <div class="nav-actions">
+                    <a class="nav-link btn-primary" href="{{ url_for('rag_page') }}">进入 RAG 设置</a>
+                </div>
+            </section>
+
+            <section class="card nav-card">
+                <div class="badge">效果预览</div>
+                <h2 class="section-title">模型效果预览</h2>
+                <p>输入测试问题并查看回答、参考来源、命中上下文和耗时日志。</p>
+                <div class="nav-actions">
+                    <a class="nav-link btn-primary" href="{{ url_for('preview_page') }}">进入模型预览</a>
+                </div>
+            </section>
+
+            <section class="card nav-card">
+                <div class="badge">对外 API</div>
+                <h2 class="section-title">FastAPI 对外接口</h2>
+                <p>通过 FastAPI 暴露带有 RAG 能力的问答接口，供其他系统通过 HTTP 调用。</p>
+                <div class="nav-actions">
+                    <a class="nav-link btn-primary" href="{{ url_for('api_docs_page') }}">查看接口说明</a>
+                </div>
+            </section>
+        </div>
+    </div>
+</body>
+</html>

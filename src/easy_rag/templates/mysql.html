@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>MySQL Settings</title>
+    {% include "_styles.html" %}
+</head>
+<body>
+    <div class="page">
+        {% import "_form_fields.html" as forms %}
+        <form method="post" action="{{ url_for('test_mysql') }}" class="fields">
+            <input type="hidden" name="CURRENT_PAGE" value="mysql">
+            {{ forms.hidden_preserve_fields(form_values, mysql_page_fields) }}
+            <div class="top-nav">
+                {{ forms.nav_buttons('mysql') }}
+            </div>
+
+            <section class="hero">
+                <h1>MySQL 相关设置</h1>
+                <p>配置数据库连接、表名和 SQL 查询，并执行连接测试。</p>
+            </section>
+
+            {% if message %}<div class="flash success">{{ message }}</div>{% endif %}
+            {% if error %}<div class="flash error">{{ error }}</div>{% endif %}
+            {% if settings_error %}<div class="flash error">当前配置存在待修正项：{{ settings_error }}</div>{% endif %}
+
+            <div class="grid">
+                <section class="card">
+                    {{ forms.mysql_fields(form_values) }}
+                    <div>
+                        <label for="MYSQL_PREVIEW_TABLE">MYSQL_PREVIEW_TABLE</label>
+                        <input id="MYSQL_PREVIEW_TABLE" name="MYSQL_PREVIEW_TABLE" type="text" value="{{ mysql_preview_table_name }}">
+                        <div class="help">输入表名后，可直接预览该表前 10 条数据。</div>
+                    </div>
+                    <div class="button-row">
+                        <button class="btn-primary" type="submit">测试 MySQL 连接</button>
+                        <button class="btn-secondary" type="submit" formaction="{{ url_for('preview_mysql_table') }}">预览表前 10 条数据</button>
+                        <button class="btn-secondary" type="submit" formaction="{{ url_for('save_config') }}">保存 MySQL 配置</button>
+                    </div>
+                </section>
+
+                <section class="card">
+                    <div class="badge">测试结果</div>
+                    <h2 class="section-title">MySQL 测试结果</h2>
+                    {% if mysql_info %}
+                    <div class="result-box">数据库：{{ mysql_info["database"] }}
+版本：{{ mysql_info["version"] }}
+表数量：{{ mysql_info["table_count"] }}
+示例表：{{ mysql_info["sample_tables"]|join(", ") }}</div>
+                    {% else %}
+                    <div class="result-box">这里会显示 MySQL 连接测试结果。</div>
+                    {% endif %}
+
+                    {% if mysql_table_preview %}
+                    <div class="section-divider"></div>
+                    <h2 class="section-title">表数据预览</h2>
+                    <div class="section-subtitle">表名：{{ mysql_table_preview["table_name"] }} | 预览行数：{{ mysql_table_preview["row_count"] }}</div>
+                    {% if mysql_table_preview["rows"] %}
+                    <table>
+                        <thead>
+                            <tr>
+                                {% for column in mysql_table_preview["columns"] %}
+                                <th>{{ column }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in mysql_table_preview["rows"] %}
+                            <tr>
+                                {% for column in mysql_table_preview["columns"] %}
+                                <td>{{ row[column] }}</td>
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <div class="result-box">该表存在，但前 10 条数据为空。</div>
+                    {% endif %}
+                    {% endif %}
+                </section>
+            </div>
+        </form>
+    </div>
+</body>
+</html>
